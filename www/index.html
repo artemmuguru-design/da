@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4CAF50">
+    <link rel="manifest" href="manifest.json">
+    <title>Hello APK</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+        }
+        .container {
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 3rem;
+            margin: 0;
+        }
+        p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        .status {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Hello APK!</h1>
+        <p>Это приложение собрано автоматически из HTML</p>
+        <div class="status">
+            <span id="status">Загрузка...</span>
+        </div>
+    </div>
+    
+    <script>
+        // Регистрация Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => {
+                    document.getElementById('status').textContent = '✅ Service Worker активен';
+                })
+                .catch(err => {
+                    document.getElementById('status').textContent = '❌ Ошибка SW: ' + err;
+                });
+        } else {
+            document.getElementById('status').textContent = '⚠️ Service Worker не поддерживается';
+        }
+    </script>
+</body>
+  </html>
