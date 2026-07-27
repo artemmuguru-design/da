@@ -1,274 +1,75 @@
 <!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML в APK - Рабочий</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #1a1a2e;
-            color: white;
-        }
-        h2 { text-align: center; margin-bottom: 20px; }
-        label { display: block; margin-bottom: 5px; font-size: 14px; }
-        textarea {
-            width: 100%;
-            height: 250px;
-            background: #16213e;
-            color: #eee;
-            border: 1px solid #0f3460;
-            padding: 10px;
-            font-family: monospace;
-            font-size: 13px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-        }
-        input {
-            width: 100%;
-            padding: 12px;
-            background: #16213e;
-            color: white;
-            border: 1px solid #0f3460;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            font-size: 16px;
-        }
-        button {
-            width: 100%;
-            padding: 18px;
-            background: #e94560;
-            color: white;
-            border: none;
-            border-radius: 50px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        button:active { transform: scale(0.96); }
-        button:disabled { opacity: 0.5; }
-        .status {
-            text-align: center;
-            margin-top: 15px;
-            padding: 12px;
-            border-radius: 10px;
-            font-size: 14px;
-        }
-        .note {
-            background: #0f3460;
-            padding: 12px;
-            border-radius: 10px;
-            margin-top: 15px;
-            font-size: 13px;
-            line-height: 1.5;
-        }
-    </style>
-</head>
-<body>
-    <h2>📱 HTML → APK КОНВЕРТЕР</h2>
-    
-    <label>Название приложения:</label>
-    <input id="appName" value="Моё приложение">
-    
-    <label>Имя пакета (например: com.mycompany.app):</label>
-    <input id="packageName" value="com.myapp.webview">
-    
-    <label>HTML код:</label>
-    <textarea id="htmlCode"><!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Привет!</title>
+    <title>APK Builder</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            font-size: 2em;
-            text-align: center;
-        }
+        body { font-family: Arial; padding: 20px; background: #1a1a2e; color: white; max-width: 500px; margin: 0 auto; }
+        input, textarea { width: 100%; padding: 10px; margin: 10px 0; background: #16213e; color: white; border: 1px solid #333; border-radius: 10px; }
+        textarea { height: 300px; }
+        button { width: 100%; padding: 15px; background: #e94560; color: white; border: none; border-radius: 50px; font-size: 18px; cursor: pointer; }
+        #icon { display: none; }
+        .icon-label { display: block; padding: 20px; border: 2px dashed #333; text-align: center; border-radius: 10px; cursor: pointer; margin: 10px 0; }
     </style>
 </head>
 <body>
-    <div>
-        <h1>🚀 Работает!</h1>
-        <p>Ваше приложение готово</p>
-    </div>
-</body>
-</html></textarea>
-
-    <button id="buildBtn" onclick="createRealAPK()">🚀 СОЗДАТЬ APK</button>
-    <div id="status" class="status"></div>
+    <h1>📱 Создай свой APK</h1>
     
-    <div class="note">
-        📱 <b>Как установить:</b><br>
-        1. Скачайте APK файл<br>
-        2. Разрешите установку из неизвестных источников<br>
-        3. Откройте файл и установите<br>
-        ⚠️ Работает на Android 5.0+
-    </div>
+    <label>Название приложения:</label>
+    <input id="name" value="Моё приложение" placeholder="Название">
+    
+    <label>Иконка (png, 512x512):</label>
+    <label class="icon-label" for="icon">📸 Выбрать иконку</label>
+    <input type="file" id="icon" accept="image/png">
+    <img id="preview" style="width: 64px; height: 64px; display: none; margin: 10px auto;">
+    
+    <label>HTML код:</label>
+    <textarea id="html"><!DOCTYPE html>
+<html>
+<head><style>body{display:flex;justify-content:center;align-items:center;height:100vh;background:linear-gradient(45deg,#667eea,#764ba2);color:white;font-family:Arial;font-size:2em;}</style></head>
+<body><h1>🚀 Привет!</h1></body>
+</html></textarea>
+    
+    <button onclick="build()">🔨 СОБРАТЬ APK</button>
 
     <script>
-        // Настоящий APK Builder
-        async function createRealAPK() {
-            const buildBtn = document.getElementById('buildBtn');
-            const status = document.getElementById('status');
-            const appName = document.getElementById('appName').value || 'MyApp';
-            const packageName = document.getElementById('packageName').value || 'com.myapp';
-            const html = document.getElementById('htmlCode').value;
+        document.getElementById('icon').onchange = function(e) {
+            var reader = new FileReader();
+            reader.onload = function(event) {
+                document.getElementById('preview').src = event.target.result;
+                document.getElementById('preview').style.display = 'block';
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        };
+
+        async function build() {
+            var name = document.getElementById('name').value || 'App';
+            var html = document.getElementById('html').value;
+            var icon = document.getElementById('icon').files[0];
             
-            if (!html.trim()) {
-                status.textContent = '❌ Вставьте HTML код!';
-                status.style.background = '#e94560';
-                return;
-            }
+            var zip = new JSZip();
             
-            buildBtn.disabled = true;
-            buildBtn.textContent = '⏳ Создание APK...';
-            status.textContent = '🔨 Сборка APK файла...';
-            status.style.background = '#16213e';
+            zip.file('AndroidManifest.xml', '<?xml version="1.0"?><manifest package="com.myapp" xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.INTERNET"/><application android:label="' + name + '"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>');
             
-            try {
-                // Создаём структуру APK (это ZIP с правильной структурой)
-                const zip = new JSZip();
-                
-                // 1. AndroidManifest.xml (БИНАРНЫЙ!)
-                const manifestXml = `<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="${packageName}"
-    android:versionCode="1"
-    android:versionName="1.0">
-    
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-    
-    <application 
-        android:label="${appName}"
-        android:icon="@mipmap/ic_launcher"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar">
-        
-        <activity 
-            android:name=".MainActivity"
-            android:configChanges="orientation|screenSize"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>
-        </activity>
-    </application>
-</manifest>`;
-                
-                zip.file('AndroidManifest.xml', manifestXml);
-                
-                // 2. HTML в assets
-                zip.file('assets/index.html', html);
-                
-                // 3. classes.dex (минимальный Dalvik Executable)
-                const dexHeader = new Uint8Array([
-                    0x64, 0x65, 0x78, 0x0A, // magic: dex\n
-                    0x30, 0x33, 0x35, 0x00, // version: 035\0
-                    0x00, 0x00, 0x00, 0x00, // checksum (потом)
-                    0x00, 0x00, 0x00, 0x00, // signature
-                    0x70, 0x00, 0x00, 0x00, // file_size
-                    0x70, 0x00, 0x00, 0x00, // header_size
-                    0x78, 0x56, 0x34, 0x12, // endian_tag
-                    0x00, 0x00, 0x00, 0x00, // link_size
-                    0x00, 0x00, 0x00, 0x00, // link_off
-                    0x00, 0x00, 0x00, 0x00, // map_off
-                    0x01, 0x00, 0x00, 0x00, // string_ids_size
-                    0x70, 0x00, 0x00, 0x00, // string_ids_off
-                    0x00, 0x00, 0x00, 0x00, // type_ids_size
-                    0x00, 0x00, 0x00, 0x00, // type_ids_off
-                    0x00, 0x00, 0x00, 0x00, // proto_ids_size
-                    0x00, 0x00, 0x00, 0x00, // proto_ids_off
-                    0x00, 0x00, 0x00, 0x00, // field_ids_size
-                    0x00, 0x00, 0x00, 0x00, // field_ids_off
-                    0x00, 0x00, 0x00, 0x00, // method_ids_size
-                    0x00, 0x00, 0x00, 0x00, // method_ids_off
-                    0x00, 0x00, 0x00, 0x00, // class_defs_size
-                    0x00, 0x00, 0x00, 0x00, // class_defs_off
-                    0x00, 0x00, 0x00, 0x00, // data_size
-                    0x00, 0x00, 0x00, 0x00  // data_off
-                ]);
-                zip.file('classes.dex', dexHeader);
-                
-                // 4. resources.arsc (таблица ресурсов)
-                const arscData = new Uint8Array([
-                    0x02, 0x00, 0x0C, 0x00, // type: RES_TABLE, header_size: 12
-                    0x00, 0x00, 0x00, 0x00, // package_count: 0 (минимальный)
-                    0x00, 0x00, 0x00, 0x00
-                ]);
-                zip.file('resources.arsc', arscData);
-                
-                // 5. Папка res с ресурсами
-                zip.folder('res').folder('layout');
-                zip.folder('res').folder('values');
-                zip.folder('res').folder('mipmap-hdpi');
-                zip.folder('res').folder('mipmap-mdpi');
-                zip.folder('res').folder('mipmap-xhdpi');
-                zip.folder('res').folder('mipmap-xxhdpi');
-                
-                // 6. META-INF для подписи
-                const metaInf = zip.folder('META-INF');
-                metaInf.file('MANIFEST.MF', 
-                    'Manifest-Version: 1.0\n' +
-                    'Created-By: HTML2APK Converter\n' +
-                    'Built-By: Browser APK Builder\n\n'
-                );
-                
-                // 7. Генерируем APK файл
-                const apkBlob = await zip.generateAsync({
-                    type: 'blob',
-                    compression: 'DEFLATE',
-                    compressionOptions: {
-                        level: 6
-                    }
+            zip.file('assets/index.html', html);
+            zip.file('classes.dex', '');
+            
+            if (icon) {
+                var iconData = await new Promise(resolve => {
+                    var reader = new FileReader();
+                    reader.onload = e => resolve(e.target.result.split(',')[1]);
+                    reader.readAsDataURL(icon);
                 });
-                
-                // Скачиваем
-                const url = URL.createObjectURL(apkBlob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = appName.replace(/[^a-zA-Z0-9]/g, '_') + '.apk';
-                document.body.appendChild(a);
-                a.click();
-                
-                // Очистка
-                setTimeout(() => {
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                }, 100);
-                
-                const sizeKB = (apkBlob.size / 1024).toFixed(1);
-                status.innerHTML = `
-                    ✅ <b>APK создан!</b><br>
-                    📦 Размер: ${sizeKB} KB<br>
-                    📥 Скачивание началось...
-                `;
-                status.style.background = '#0f3460';
-                
-            } catch (error) {
-                status.textContent = '❌ Ошибка: ' + error.message;
-                status.style.background = '#e94560';
-                console.error(error);
-            } finally {
-                buildBtn.disabled = false;
-                buildBtn.textContent = '🚀 СОЗДАТЬ APK';
+                zip.file('res/mipmap/ic_launcher.png', iconData, {base64: true});
             }
+            
+            var blob = await zip.generateAsync({type: 'blob'});
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = name.replace(/\s/g, '_') + '.apk';
+            a.click();
         }
     </script>
 </body>
-    </html>
+</html>
