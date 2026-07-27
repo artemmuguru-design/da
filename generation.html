@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Генератор шаблона APK</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+    <h1>Создание template.apk</h1>
+    <button onclick="generateTemplate()">Создать шаблон</button>
+    
+    <script>
+        async function generateTemplate() {
+            const zip = new JSZip();
+            
+            // AndroidManifest.xml
+            zip.file('AndroidManifest.xml', `<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.template.webview"
+    android:versionCode="1"
+    android:versionName="1.0">
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <application android:label="MyApp">
+        <activity android:name=".MainActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>`);
+            
+            // classes.dex (минимальный)
+            zip.file('classes.dex', new Uint8Array([100, 101, 120, 10, 48, 51, 53, 0]));
+            
+            // resources.arsc
+            zip.file('resources.arsc', new Uint8Array([2, 0, 12, 0]);
+            
+            // assets/index.html
+            zip.file('assets/index.html', '<html><body><h1>Template</h1></body></html>');
+            
+            // META-INF
+            zip.folder('META-INF').file('MANIFEST.MF', 'Manifest-Version: 1.0\n');
+            
+            const blob = await zip.generateAsync({type: 'blob'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'template.apk';
+            a.click();
+        }
+    </script>
+</body>
+</html>
