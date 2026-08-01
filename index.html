@@ -3,351 +3,468 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VR Park - Телепортация взглядом</title>
+    <title>VR Park - Бесконечная телепортация</title>
     <style>
         body {
             margin: 0;
             overflow: hidden;
-            font-family: Arial, sans-serif;
-        }
-        #info {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            color: white;
-            background: rgba(0,0,0,0.7);
-            padding: 10px 20px;
-            border-radius: 10px;
-            pointer-events: none;
-            z-index: 10;
-        }
-        #counter {
-            position: absolute;
-            bottom: 50%;
-            left: 50%;
-            transform: translate(-50%, 50%);
-            color: white;
-            font-size: 48px;
-            font-weight: bold;
-            text-shadow: 0 0 10px rgba(255,0,0,0.8);
-            pointer-events: none;
-            z-index: 20;
-            display: none;
-        }
-        #enter-vr {
-            position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 15px 30px;
-            font-size: 18px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            z-index: 30;
-            transition: all 0.3s;
-        }
-        #enter-vr:hover {
-            background: #45a049;
-            transform: translateX(-50%) scale(1.05);
-        }
-        #status {
-            position: absolute;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: white;
-            background: rgba(0,0,0,0.7);
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-size: 14px;
-            z-index: 10;
-            pointer-events: none;
+            font-family: 'Arial', sans-serif;
+            background: #000;
         }
     </style>
 </head>
 <body>
-    <div id="info">
-        <h2>🎮 VR Park</h2>
-        <p>Смотрите на пол для телепортации</p>
-    </div>
-    <div id="counter"></div>
-    <div id="status">⏱️ Готов к телепортации</div>
-    <button id="enter-vr">🥽 Войти в VR</button>
-
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script>
-        // Создаем сцену A-Frame
-        const scene = document.createElement('a-scene');
-        scene.setAttribute('renderer', 'antialias: true');
-        scene.setAttribute('vr-mode-ui', 'enabled: true');
-        document.body.appendChild(scene);
-
-        // Освещение
-        const ambientLight = document.createElement('a-entity');
-        ambientLight.setAttribute('light', 'type: ambient; color: #BBB; intensity: 0.5');
-        scene.appendChild(ambientLight);
-
-        const directionalLight = document.createElement('a-entity');
-        directionalLight.setAttribute('light', 'type: directional; color: #FFF; intensity: 1');
-        directionalLight.setAttribute('position', '1 3 2');
-        scene.appendChild(directionalLight);
-
-        // Пол
-        const floor = document.createElement('a-plane');
-        floor.setAttribute('position', '0 0 0');
-        floor.setAttribute('rotation', '-90 0 0');
-        floor.setAttribute('width', '20');
-        floor.setAttribute('height', '20');
-        floor.setAttribute('color', '#7B7B7B');
-        floor.setAttribute('material', 'roughness: 0.8; metalness: 0.2');
-        floor.setAttribute('class', 'floor');
-        scene.appendChild(floor);
-
-        // Разметка на полу
-        const gridLines = document.createElement('a-grid');
-        gridLines.setAttribute('position', '0 0.01 0');
-        gridLines.setAttribute('rotation', '-90 0 0');
-        gridLines.setAttribute('width', '20');
-        gridLines.setAttribute('height', '20');
-        gridLines.setAttribute('gridsize', '2');
-        gridLines.setAttribute('thickness', '0.02');
-        gridLines.setAttribute('color', '#555');
-        scene.appendChild(gridLines);
-
-        // Стены
-        const wallColor = '#E8E8E8';
+    
+    <a-scene id="vr-scene" 
+             renderer="antialias: true; colorManagement: true"
+             vr-mode-ui="enabled: true;">
         
-        function createWall(position, rotation, width, height) {
-            const wall = document.createElement('a-plane');
-            wall.setAttribute('position', position);
-            wall.setAttribute('rotation', rotation);
-            wall.setAttribute('width', width);
-            wall.setAttribute('height', height);
-            wall.setAttribute('color', wallColor);
-            wall.setAttribute('material', 'roughness: 0.9; metalness: 0.1; side: double');
-            scene.appendChild(wall);
-        }
+        <!-- Освещение -->
+        <a-entity light="type: ambient; color: #BBB; intensity: 0.4"></a-entity>
+        <a-entity light="type: directional; color: #FFF; intensity: 0.8" position="1 3 2"></a-entity>
+        <a-entity light="type: point; color: #FFE4B5; intensity: 0.5" position="0 3 0"></a-entity>
 
-        createWall('0 2 -10', '0 0 0', '20', '4');     // Задняя стена
-        createWall('0 2 10', '0 180 0', '20', '4');     // Передняя стена
-        createWall('-10 2 0', '0 90 0', '20', '4');     // Левая стена
-        createWall('10 2 0', '0 -90 0', '20', '4');     // Правая стена
+        <!-- Пол -->
+        <a-plane position="0 0 0" rotation="-90 0 0" width="20" height="20" 
+                 color="#808080" material="roughness: 0.7; metalness: 0.1" class="floor"></a-plane>
+        
+        <!-- Разметка на полу -->
+        <a-grid position="0 0.01 0" rotation="-90 0 0" width="20" height="20" 
+                gridsize="2" thickness="0.03" color="#666"></a-grid>
 
-        // Потолок
-        const ceiling = document.createElement('a-plane');
-        ceiling.setAttribute('position', '0 4 0');
-        ceiling.setAttribute('rotation', '90 0 0');
-        ceiling.setAttribute('width', '20');
-        ceiling.setAttribute('height', '20');
-        ceiling.setAttribute('color', '#F0F0F0');
-        ceiling.setAttribute('material', 'roughness: 0.9; metalness: 0.1; side: double');
-        scene.appendChild(ceiling);
+        <!-- Стены -->
+        <a-plane position="0 2.5 -10" rotation="0 0 0" width="20" height="5" 
+                 color="#D3D3D3" material="roughness: 0.9; side: double"></a-plane>
+        <a-plane position="0 2.5 10" rotation="0 180 0" width="20" height="5" 
+                 color="#D3D3D3" material="roughness: 0.9; side: double"></a-plane>
+        <a-plane position="-10 2.5 0" rotation="0 90 0" width="20" height="5" 
+                 color="#C0C0C0" material="roughness: 0.9; side: double"></a-plane>
+        <a-plane position="10 2.5 0" rotation="0 -90 0" width="20" height="5" 
+                 color="#C0C0C0" material="roughness: 0.9; side: double"></a-plane>
 
-        // Декоративные элементы
-        function createBox(x, y, z, color, w, h, d) {
-            const box = document.createElement('a-box');
-            box.setAttribute('position', `${x} ${y} ${z}`);
-            box.setAttribute('width', w || 1);
-            box.setAttribute('height', h || 1);
-            box.setAttribute('depth', d || 1);
-            box.setAttribute('color', color);
-            box.setAttribute('material', 'roughness: 0.5; metalness: 0.3');
-            scene.appendChild(box);
-        }
+        <!-- Потолок -->
+        <a-plane position="0 5 0" rotation="90 0 0" width="20" height="20" 
+                 color="#E8E8E8" material="roughness: 0.9; side: double"></a-plane>
 
-        // Разноцветные кубы по комнате
-        createBox(-3, 0.5, -3, '#FF6B6B', 1, 1, 1);
-        createBox(3, 0.5, -3, '#4ECDC4', 1, 1.5, 1);
-        createBox(-3, 0.5, 3, '#45B7D1', 1.5, 1, 1);
-        createBox(3, 0.5, 3, '#96CEB4', 1, 1, 1.5);
-        createBox(0, 0.25, -5, '#FFEAA7', 2, 0.5, 2);
-        createBox(-5, 0.75, 0, '#DDA0DD', 0.8, 1.5, 0.8);
+        <!-- Декоративные элементы -->
+        <a-box position="-4 0.5 -4" width="1.5" height="1" depth="1.5" color="#FF6B6B" 
+               material="roughness: 0.4; metalness: 0.3"></a-box>
+        <a-box position="4 0.75 -4" width="1" height="1.5" depth="1" color="#4ECDC4" 
+               material="roughness: 0.4; metalness: 0.3"></a-box>
+        <a-box position="-4 0.5 4" width="1" height="1" depth="1" color="#45B7D1" 
+               material="roughness: 0.4; metalness: 0.3"></a-box>
+        <a-box position="4 0.5 4" width="1" height="1" depth="1.5" color="#96CEB4" 
+               material="roughness: 0.4; metalness: 0.3"></a-box>
+        <a-box position="0 0.3 -6" width="2.5" height="0.6" depth="2.5" color="#FFEAA7" 
+               material="roughness: 0.5; metalness: 0.2"></a-box>
+        
+        <a-sphere position="6 0.8 -6" radius="0.8" color="#FF8C00" 
+                  material="roughness: 0.3; metalness: 0.5"></a-sphere>
+        <a-cylinder position="-6 0.6 6" radius="0.6" height="1.2" color="#8B4513" 
+                    material="roughness: 0.5; metalness: 0.2"></a-cylinder>
+        <a-cone position="6 0.5 6" radius-bottom="0.7" radius-top="0" height="1.5" 
+                color="#9370DB" material="roughness: 0.4; metalness: 0.3"></a-cone>
 
-        // Сфера в углу
-        const sphere = document.createElement('a-sphere');
-        sphere.setAttribute('position', '5 0.8 -5');
-        sphere.setAttribute('radius', '0.8');
-        sphere.setAttribute('color', '#FF8C00');
-        sphere.setAttribute('material', 'roughness: 0.3; metalness: 0.5');
-        scene.appendChild(sphere);
+        <!-- Светящиеся шары для атмосферы -->
+        <a-sphere position="-6 3 -6" radius="0.2" color="#00FF00" 
+                  material="emissive: #00FF00; emissiveIntensity: 0.8" 
+                  animation="property: position; from: -6 3 -6; to: -6 3.5 -6; dir: alternate; dur: 2000; loop: true"></a-sphere>
+        <a-sphere position="6 3 -6" radius="0.2" color="#FF00FF" 
+                  material="emissive: #FF00FF; emissiveIntensity: 0.8"
+                  animation="property: position; from: 6 3 -6; to: 6 3.5 -6; dir: alternate; dur: 2500; loop: true"></a-sphere>
+        <a-sphere position="0 3 6" radius="0.2" color="#00FFFF" 
+                  material="emissive: #00FFFF; emissiveIntensity: 0.8"
+                  animation="property: position; from: 0 3 6; to: 0 3.5 6; dir: alternate; dur: 1800; loop: true"></a-sphere>
 
-        // Цилиндр
-        const cylinder = document.createElement('a-cylinder');
-        cylinder.setAttribute('position', '-5 0.75 5');
-        cylinder.setAttribute('radius', '0.5');
-        cylinder.setAttribute('height', '1.5');
-        cylinder.setAttribute('color', '#8B4513');
-        cylinder.setAttribute('material', 'roughness: 0.6; metalness: 0.2');
-        scene.appendChild(cylinder);
-
-        // Камера игрока
-        const camera = document.createElement('a-entity');
-        camera.setAttribute('camera', '');
-        camera.setAttribute('position', '0 1.6 0');
-        camera.setAttribute('look-controls', '');
-        camera.setAttribute('wasd-controls', 'acceleration: 100');
-        scene.appendChild(camera);
-
-        // Красная точка в центре (прицел)
-        const reticle = document.createElement('a-ring');
-        reticle.setAttribute('position', '0 0 -1.5');
-        reticle.setAttribute('radius-inner', '0.005');
-        reticle.setAttribute('radius-outer', '0.01');
-        reticle.setAttribute('color', '#FF0000');
-        reticle.setAttribute('material', 'shader: flat; emissive: #FF0000; emissiveIntensity: 1');
-        reticle.setAttribute('id', 'reticle');
-        camera.appendChild(reticle);
-
-        // Внутренняя точка
-        const innerDot = document.createElement('a-ring');
-        innerDot.setAttribute('position', '0 0 -1.5');
-        innerDot.setAttribute('radius-inner', '0.001');
-        innerDot.setAttribute('radius-outer', '0.004');
-        innerDot.setAttribute('color', '#FF3333');
-        innerDot.setAttribute('material', 'shader: flat; emissive: #FF0000; emissiveIntensity: 1.5');
-        camera.appendChild(innerDot);
-
-        // Элемент для отслеживания пересечения с полом
-        const cursor = document.createElement('a-entity');
-        cursor.setAttribute('cursor', 'rayOrigin: mouse; fuse: false');
-        cursor.setAttribute('raycaster', 'objects: .floor; far: 20');
-        cursor.setAttribute('id', 'cursor');
-        camera.appendChild(cursor);
-
-        // Переменные для отсчета
-        let lookTimer = null;
-        let countdownValue = 5;
-        let isLookingAtFloor = false;
-        const counterElement = document.getElementById('counter');
-        const statusElement = document.getElementById('status');
-
-        // Функция обновления отсчета
-        function updateCounter() {
-            if (countdownValue > 0) {
-                counterElement.textContent = countdownValue;
-                statusElement.textContent = `⏱️ Телепортация через ${countdownValue}...`;
-                countdownValue--;
-            } else {
-                // Телепортация!
-                performTeleport();
-                resetTimer();
-            }
-        }
-
-        // Сброс таймера
-        function resetTimer() {
-            if (lookTimer) {
-                clearInterval(lookTimer);
-                lookTimer = null;
-            }
-            countdownValue = 5;
-            counterElement.style.display = 'none';
-            isLookingAtFloor = false;
-            statusElement.textContent = '⏱️ Готов к телепортации';
-        }
-
-        // Выполнение телепортации
-        function performTeleport() {
-            // Получаем текущее направление взгляда
-            const cameraEl = camera;
-            const cameraWorldPos = new THREE.Vector3();
-            const cameraWorldQuat = new THREE.Quaternion();
+        <!-- Камера с ретиклем -->
+        <a-entity id="player" position="0 1.6 0" camera look-controls>
             
-            cameraEl.object3D.getWorldPosition(cameraWorldPos);
-            cameraEl.object3D.getWorldQuaternion(cameraWorldQuat);
+            <!-- Красный прицел (ретикль) -->
+            <a-entity id="reticle-container" position="0 0 -0.5">
+                <!-- Внешнее кольцо -->
+                <a-ring position="0 0 0" radius-inner="0.008" radius-outer="0.012" 
+                        color="#FF0000" material="shader: flat; emissive: #FF0000; emissiveIntensity: 1.5">
+                </a-ring>
+                <!-- Внутренняя точка -->
+                <a-ring position="0 0 0" radius-inner="0.001" radius-outer="0.004" 
+                        color="#FF3333" material="shader: flat; emissive: #FF0000; emissiveIntensity: 2">
+                </a-ring>
+                
+                <!-- Прогресс-бар телепортации -->
+                <a-entity id="teleport-progress" position="0 0.03 0" visible="false">
+                    <a-ring position="0 0 0" radius-inner="0.01" radius-outer="0.012" 
+                            color="#00FF00" material="shader: flat; emissive: #00FF00; emissiveIntensity: 1"
+                            theta-length="0">
+                        <a-animation id="progress-animation" attribute="theta-length" 
+                                   from="0" to="360" dur="5000" easing="linear" begin="startProgress">
+                        </a-animation>
+                    </a-ring>
+                    <!-- Обратный отсчет -->
+                    <a-text id="countdown-text" position="0 0.04 0" align="center" 
+                            value="" color="#00FF00" width="0.1" 
+                            material="emissive: #00FF00; emissiveIntensity: 1"></a-text>
+                </a-entity>
+            </a-entity>
 
-            // Направление взгляда
-            const direction = new THREE.Vector3(0, 0, -1);
-            direction.applyQuaternion(cameraWorldQuat);
-            direction.normalize();
+            <!-- Луч для отслеживания взгляда -->
+            <a-entity id="cursor" cursor="rayOrigin: mouse; fuse: false" 
+                      raycaster="objects: .floor; far: 30; interval: 100"
+                      line="color: #FF0000; opacity: 0.3; visible: false">
+            </a-entity>
+        </a-entity>
 
-            // Находим точку пересечения с плоскостью пола (y = 0)
-            if (direction.y < 0) {
-                const t = -cameraWorldPos.y / direction.y;
-                if (t > 0 && t < 20) {
-                    const targetX = cameraWorldPos.x + direction.x * t;
-                    const targetZ = cameraWorldPos.z + direction.z * t;
+        <!-- VR UI Панель с информацией -->
+        <a-entity id="vr-ui-panel" position="0 2.5 -3" rotation="0 0 0">
+            <!-- Фон панели -->
+            <a-plane width="1.2" height="0.4" color="#1a1a1a" 
+                     material="opacity: 0.8; roughness: 0.5; metalness: 0.5"></a-plane>
+            <a-plane width="1.15" height="0.35" position="0 0 0.01" color="#2a2a2a" 
+                     material="opacity: 0.6; roughness: 0.3; metalness: 0.7"></a-plane>
+            
+            <!-- Заголовок -->
+            <a-text position="0 0.1 0.02" value="🎮 VR PARK" align="center" 
+                    color="#FF0000" width="1.2" material="emissive: #FF0000; emissiveIntensity: 0.5"></a-text>
+            
+            <!-- Статус -->
+            <a-text id="vr-status-text" position="0 0 0.02" value="⏱️ Готов" align="center" 
+                    color="#FFFFFF" width="1" material="emissive: #FFFFFF; emissiveIntensity: 0.3"></a-text>
+            
+            <!-- Инструкция -->
+            <a-text position="0 -0.1 0.02" value="Смотри на пол 5 сек" align="center" 
+                    color="#AAAAAA" width="1.1" material="emissive: #AAAAAA; emissiveIntensity: 0.2"></a-text>
+        </a-entity>
+
+        <!-- Маркер последней телепортации -->
+        <a-entity id="teleport-markers"></a-entity>
+    </a-scene>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const scene = document.querySelector('a-scene');
+            const player = document.getElementById('player');
+            const cursor = document.getElementById('cursor');
+            const reticleContainer = document.getElementById('reticle-container');
+            const teleportProgress = document.getElementById('teleport-progress');
+            const countdownText = document.getElementById('countdown-text');
+            const vrStatusText = document.getElementById('vr-status-text');
+            const teleportMarkers = document.getElementById('teleport-markers');
+            const progressAnimation = document.getElementById('progress-animation');
+            
+            let isLookingAtFloor = false;
+            let teleportTimer = null;
+            let countdownValue = 5;
+            let isTeleporting = false;
+            let teleportCount = 0;
+
+            // Функция для проверки, смотрит ли игрок на пол
+            function checkFloorLook(direction) {
+                // Если смотрим вниз (угол меньше -30 градусов от горизонта)
+                return direction.y < -0.3;
+            }
+
+            // Сброс таймера телепортации
+            function resetTeleportTimer() {
+                if (teleportTimer) {
+                    clearInterval(teleportTimer);
+                    teleportTimer = null;
+                }
+                countdownValue = 5;
+                isLookingAtFloor = false;
+                isTeleporting = false;
+                
+                // Скрываем прогресс
+                teleportProgress.setAttribute('visible', false);
+                
+                // Сбрасываем анимацию прогресса
+                const ring = teleportProgress.querySelector('a-ring');
+                if (ring) {
+                    ring.setAttribute('theta-length', '0');
+                }
+                
+                // Обновляем статус
+                vrStatusText.setAttribute('value', '⏱️ Готов');
+                vrStatusText.setAttribute('color', '#FFFFFF');
+            }
+
+            // Выполнение телепортации
+            function performTeleport() {
+                if (isTeleporting) return;
+                isTeleporting = true;
+                
+                // Получаем направление взгляда
+                const playerRotation = player.getAttribute('rotation');
+                const rotationRad = THREE.MathUtils.degToRad(playerRotation.y);
+                const pitchRad = THREE.MathUtils.degToRad(playerRotation.x);
+                
+                // Вычисляем направление с учетом поворота по вертикали
+                const direction = new THREE.Vector3(
+                    -Math.sin(rotationRad) * Math.cos(pitchRad),
+                    -Math.sin(pitchRad),
+                    -Math.cos(rotationRad) * Math.cos(pitchRad)
+                );
+                direction.normalize();
+                
+                // Находим пересечение с полом (y = 0)
+                const playerPos = player.getAttribute('position');
+                const cameraPos = new THREE.Vector3(playerPos.x, playerPos.y, playerPos.z);
+                
+                if (direction.y < 0) {
+                    const t = -cameraPos.y / direction.y;
+                    if (t > 0 && t < 20) {
+                        const targetX = cameraPos.x + direction.x * t;
+                        const targetZ = cameraPos.z + direction.z * t;
+                        
+                        // Ограничиваем пределами комнаты
+                        const clampedX = Math.max(-9, Math.min(9, targetX));
+                        const clampedZ = Math.max(-9, Math.min(9, targetZ));
+                        
+                        // Сохраняем высоту
+                        const targetY = 1.6;
+                        
+                        // Телепортация
+                        player.setAttribute('position', `${clampedX} ${targetY} ${clampedZ}`);
+                        
+                        // Увеличиваем счетчик
+                        teleportCount++;
+                        
+                        // Создаем эффект на месте телепортации
+                        createTeleportEffect(clampedX, 0.1, clampedZ);
+                        
+                        // Создаем маркер
+                        createTeleportMarker(clampedX, 0.05, clampedZ);
+                        
+                        // Обновляем статус
+                        vrStatusText.setAttribute('value', `✨ Телепорт #${teleportCount}`);
+                        vrStatusText.setAttribute('color', '#00FF00');
+                        
+                        // Воспроизводим звук (если есть)
+                        const sound = document.getElementById('teleport-sound');
+                        if (sound) {
+                            sound.play();
+                        }
+                        
+                        // Через 2 секунды сбрасываем статус
+                        setTimeout(() => {
+                            if (!isLookingAtFloor) {
+                                vrStatusText.setAttribute('value', '⏱️ Готов');
+                                vrStatusText.setAttribute('color', '#FFFFFF');
+                            }
+                        }, 2000);
+                    }
+                }
+                
+                // Сбрасываем таймер
+                resetTeleportTimer();
+                isTeleporting = false;
+            }
+
+            // Создание эффекта телепортации
+            function createTeleportEffect(x, y, z) {
+                const effect = document.createElement('a-entity');
+                
+                // Световой круг
+                const circle = document.createElement('a-ring');
+                circle.setAttribute('position', `${x} ${y} ${z}`);
+                circle.setAttribute('rotation', '-90 0 0');
+                circle.setAttribute('radius-inner', '0.1');
+                circle.setAttribute('radius-outer', '1.5');
+                circle.setAttribute('color', '#00FF00');
+                circle.setAttribute('material', 'opacity: 0.8; emissive: #00FF00; emissiveIntensity: 1; transparent: true');
+                
+                // Анимация расширения и исчезновения
+                circle.setAttribute('animation__scale', {
+                    property: 'scale',
+                    from: '0.1 0.1 0.1',
+                    to: '2 2 2',
+                    dur: 800,
+                    easing: 'easeOutQuad'
+                });
+                
+                circle.setAttribute('animation__fade', {
+                    property: 'material.opacity',
+                    from: '0.8',
+                    to: '0',
+                    dur: 800,
+                    easing: 'easeOutQuad'
+                });
+                
+                effect.appendChild(circle);
+                
+                // Частицы
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2;
+                    const particle = document.createElement('a-sphere');
+                    particle.setAttribute('position', `${x} ${y} ${z}`);
+                    particle.setAttribute('radius', '0.05');
+                    particle.setAttribute('color', '#00FF00');
+                    particle.setAttribute('material', 'emissive: #00FF00; emissiveIntensity: 0.5');
                     
-                    // Ограничиваем координаты пределами комнаты
-                    const clampedX = Math.max(-9, Math.min(9, targetX));
-                    const clampedZ = Math.max(-9, Math.min(9, targetZ));
+                    const targetX = x + Math.cos(angle) * 1.5;
+                    const targetZ = z + Math.sin(angle) * 1.5;
                     
-                    // Телепортация
-                    cameraEl.setAttribute('position', `${clampedX} 1.6 ${clampedZ}`);
+                    particle.setAttribute('animation', {
+                        property: 'position',
+                        from: `${x} ${y} ${z}`,
+                        to: `${targetX} ${y + 1} ${targetZ}`,
+                        dur: 600,
+                        easing: 'easeOutQuad'
+                    });
                     
-                    // Визуальный эффект
-                    statusElement.textContent = '✨ Телепортация!';
-                    counterElement.style.display = 'none';
+                    particle.setAttribute('animation__fade', {
+                        property: 'material.opacity',
+                        from: '1',
+                        to: '0',
+                        dur: 600,
+                        easing: 'easeOutQuad'
+                    });
                     
-                    // Эффект вспышки
-                    const flash = document.createElement('a-sphere');
-                    flash.setAttribute('position', `${clampedX} 0.1 ${clampedZ}`);
-                    flash.setAttribute('radius', '0.3');
-                    flash.setAttribute('color', '#00FF00');
-                    flash.setAttribute('material', 'opacity: 0.8; emissive: #00FF00; emissiveIntensity: 1');
-                    flash.setAttribute('animation', 'property: scale; from: 0.1 0.1 0.1; to: 2 2 2; dur: 500; easing: easeOutQuad');
-                    flash.setAttribute('animation__fade', 'property: material.opacity; from: 0.8; to: 0; dur: 500; easing: easeOutQuad');
-                    scene.appendChild(flash);
-                    
-                    setTimeout(() => {
-                        scene.removeChild(flash);
-                        statusElement.textContent = '⏱️ Готов к телепортации';
-                    }, 500);
+                    effect.appendChild(particle);
+                }
+                
+                scene.appendChild(effect);
+                
+                // Удаляем эффект через 1 секунду
+                setTimeout(() => {
+                    scene.removeChild(effect);
+                }, 1000);
+            }
+
+            // Создание маркера телепортации
+            function createTeleportMarker(x, y, z) {
+                const marker = document.createElement('a-entity');
+                
+                // Полупрозрачный круг
+                const circle = document.createElement('a-ring');
+                circle.setAttribute('position', `${x} ${y} ${z}`);
+                circle.setAttribute('rotation', '-90 0 0');
+                circle.setAttribute('radius-inner', '0.15');
+                circle.setAttribute('radius-outer', '0.2');
+                circle.setAttribute('color', '#00FF00');
+                circle.setAttribute('material', 'opacity: 0.5; emissive: #00FF00; emissiveIntensity: 0.3; transparent: true');
+                
+                // Номер телепортации
+                const text = document.createElement('a-text');
+                text.setAttribute('position', `${x} ${y + 0.01} ${z}`);
+                text.setAttribute('rotation', '-90 0 0');
+                text.setAttribute('value', `${teleportCount}`);
+                text.setAttribute('align', 'center');
+                text.setAttribute('color', '#00FF00');
+                text.setAttribute('width', '0.3');
+                text.setAttribute('material', 'emissive: #00FF00; emissiveIntensity: 0.5');
+                
+                marker.appendChild(circle);
+                marker.appendChild(text);
+                teleportMarkers.appendChild(marker);
+                
+                // Пульсация маркера
+                marker.setAttribute('animation', {
+                    property: 'scale',
+                    from: '1 1 1',
+                    to: '1.2 1.2 1.2',
+                    dir: 'alternate',
+                    dur: 1500,
+                    loop: true,
+                    easing: 'easeInOutQuad'
+                });
+                
+                // Оставляем только последние 10 маркеров
+                const markers = teleportMarkers.children;
+                if (markers.length > 10) {
+                    teleportMarkers.removeChild(markers[0]);
                 }
             }
-        }
 
-        // Обработчик событий рейкастера
-        cursor.addEventListener('raycaster-intersection', function(evt) {
-            if (evt.detail.els && evt.detail.els.length > 0) {
-                // Луч пересекает пол
-                if (!isLookingAtFloor) {
-                    isLookingAtFloor = true;
-                    countdownValue = 5;
-                    counterElement.style.display = 'block';
-                    counterElement.textContent = countdownValue;
-                    statusElement.textContent = `⏱️ Телепортация через ${countdownValue}...`;
+            // Обработчик пересечения луча с полом
+            cursor.addEventListener('raycaster-intersection', function(evt) {
+                if (evt.detail.intersections && evt.detail.intersections.length > 0) {
+                    const intersection = evt.detail.intersections[0];
+                    const point = intersection.point;
+                    const face = intersection.face;
                     
-                    lookTimer = setInterval(updateCounter, 1000);
+                    // Проверяем, что это пол (нормаль направлена вверх)
+                    if (face && face.normal && face.normal.y > 0.5) {
+                        if (!isLookingAtFloor && !isTeleporting) {
+                            // Начинаем отсчет
+                            isLookingAtFloor = true;
+                            countdownValue = 5;
+                            
+                            // Показываем прогресс-бар
+                            teleportProgress.setAttribute('visible', true);
+                            countdownText.setAttribute('value', '5');
+                            
+                            // Обновляем статус
+                            vrStatusText.setAttribute('value', '⏱️ Смотрю на пол...');
+                            vrStatusText.setAttribute('color', '#FFA500');
+                            
+                            // Запускаем анимацию прогресса
+                            const progressRing = teleportProgress.querySelector('a-ring');
+                            if (progressRing) {
+                                progressRing.setAttribute('theta-length', '0');
+                                progressRing.emit('startProgress');
+                            }
+                            
+                            // Запускаем таймер
+                            teleportTimer = setInterval(function() {
+                                countdownValue--;
+                                if (countdownValue > 0) {
+                                    countdownText.setAttribute('value', countdownValue.toString());
+                                    vrStatusText.setAttribute('value', `⏱️ Телепорт через ${countdownValue}...`);
+                                } else {
+                                    // Телепортация!
+                                    clearInterval(teleportTimer);
+                                    teleportTimer = null;
+                                    performTeleport();
+                                }
+                            }, 1000);
+                        }
+                    }
                 }
-            }
-        });
+            });
 
-        cursor.addEventListener('raycaster-intersection-cleared', function() {
-            // Луч больше не пересекает пол
-            if (isLookingAtFloor) {
-                resetTimer();
-            }
-        });
+            // Обработчик прекращения пересечения
+            cursor.addEventListener('raycaster-intersection-cleared', function() {
+                if (isLookingAtFloor && !isTeleporting) {
+                    resetTeleportTimer();
+                }
+            });
 
-        // Кнопка входа в VR
-        document.getElementById('enter-vr').addEventListener('click', function() {
-            if (scene.hasAttribute('vr-mode')) {
-                scene.exitVR();
-            } else {
-                scene.enterVR();
-            }
-        });
+            // Обработчик входа в VR
+            scene.addEventListener('enter-vr', function() {
+                console.log('Вход в VR режим');
+                vrStatusText.setAttribute('value', '🥽 VR активен');
+                vrStatusText.setAttribute('color', '#00FFFF');
+            });
 
-        // Обновление текста кнопки при изменении режима VR
-        scene.addEventListener('enter-vr', function() {
-            document.getElementById('enter-vr').textContent = '🚪 Выйти из VR';
-            document.getElementById('info').style.display = 'none';
-        });
+            // Обработчик выхода из VR
+            scene.addEventListener('exit-vr', function() {
+                console.log('Выход из VR режима');
+                vrStatusText.setAttribute('value', '⏱️ Готов');
+                vrStatusText.setAttribute('color', '#FFFFFF');
+            });
 
-        scene.addEventListener('exit-vr', function() {
-            document.getElementById('enter-vr').textContent = '🥽 Войти в VR';
-            document.getElementById('info').style.display = 'block';
-        });
+            // Дополнительная проверка направления взгляда каждые 100мс
+            setInterval(function() {
+                if (isLookingAtFloor && !isTeleporting) {
+                    const rotation = player.getAttribute('rotation');
+                    const pitchRad = THREE.MathUtils.degToRad(rotation.x);
+                    const direction = new THREE.Vector3(0, -Math.sin(pitchRad), -Math.cos(pitchRad));
+                    
+                    if (direction.y > -0.3) {
+                        // Перестали смотреть на пол
+                        resetTeleportTimer();
+                    }
+                }
+            }, 100);
 
-        console.log('🎮 VR Park загружен!');
-        console.log('📋 Управление:');
-        console.log('  - Смотрите на пол для начала отсчета');
-        console.log('  - Удерживайте взгляд 5 секунд для телепортации');
-        console.log('  - Нажмите кнопку "Войти в VR" для VR-режима');
+            console.log('🎮 VR Park готов!');
+            console.log('📋 Управление:');
+            console.log('  - Войдите в VR режим');
+            console.log('  - Красная точка показывает центр взгляда');
+            console.log('  - Смотрите на пол 5 секунд для телепортации');
+            console.log('  - Можно телепортироваться неограниченное количество раз');
+            console.log('  - Маркеры показывают историю телепортаций');
+        });
     </script>
 </body>
-  </html>
+    </html>
