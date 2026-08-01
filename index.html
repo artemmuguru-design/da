@@ -3,14 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>VR Взятие блоков</title>
+  <title>VR Строитель + Телепорт</title>
   <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@1.4.0/dist/aframe-physics-system.min.js"></script>
   
   <style>
     body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
-    
-    /* Кнопка бросить блок - всегда на экране */
     #drop-btn {
       position: fixed;
       bottom: 40px;
@@ -25,7 +23,6 @@
       border: 4px solid white;
       box-shadow: 0 0 40px rgba(255, 0, 0, 0.7);
       z-index: 999;
-      touch-action: manipulation;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -33,13 +30,9 @@
       line-height: 1.3;
       padding: 10px;
       user-select: none;
+      touch-action: manipulation;
     }
-    #drop-btn:active {
-      transform: scale(0.85);
-      background: #cc0000;
-    }
-    
-    /* Информация сверху */
+    #drop-btn:active { transform: scale(0.85); background: #cc0000; }
     #info {
       position: fixed;
       top: 20px;
@@ -60,68 +53,125 @@
 <body>
 
   <button id="drop-btn">БРОСИТЬ<br>БЛОК</button>
-  <div id="info">🎯 Наведись на блок на 5 секунд, чтобы взять его</div>
+  <div id="info">🎯 Наведись на блок на 5 сек, чтобы взять его</div>
 
   <a-scene physics="driver: local; gravity: -9.8">
     
-    <!-- Комната со всех сторон -->
-    <a-plane position="0 0 0" rotation="-90 0 0" width="12" height="12" color="#2a2a2a"></a-plane>
-    <a-box position="0 2 -6" width="12" height="4" depth="0.3" color="#3a3a3a"></a-box>
-    <a-box position="0 2 6" width="12" height="4" depth="0.3" color="#4a4a4a" opacity="0.2"></a-box>
-    <a-box position="-6 2 0" width="0.3" height="4" depth="12" color="#3a3a3a"></a-box>
-    <a-box position="6 2 0" width="0.3" height="4" depth="12" color="#3a3a3a"></a-box>
-    <a-box position="0 4 0" width="12" height="0.3" depth="12" color="#2a2a2a"></a-box>
+    <!-- ===== СТЕНЫ С СЕТКОЙ (как на фото) ===== -->
+    <!-- Задняя стена -->
+    <a-box position="0 2 -6" width="12" height="4" depth="0.3" color="#c0c0c0">
+      <a-image src="#grid-texture" repeat="6 2" position="0 0 0.01"></a-image>
+    </a-box>
+    
+    <!-- Левая стена -->
+    <a-box position="-6 2 0" width="0.3" height="4" depth="12" color="#c0c0c0">
+      <a-image src="#grid-texture" repeat="6 2" position="0 0 0.01" rotation="0 90 0"></a-image>
+    </a-box>
+    
+    <!-- Правая стена -->
+    <a-box position="6 2 0" width="0.3" height="4" depth="12" color="#c0c0c0">
+      <a-image src="#grid-texture" repeat="6 2" position="0 0 0.01" rotation="0 -90 0"></a-image>
+    </a-box>
+    
+    <!-- Передняя стена (полупрозрачная, чтобы видно было) -->
+    <a-box position="0 2 6" width="12" height="4" depth="0.3" color="#c0c0c0" opacity="0.2">
+      <a-image src="#grid-texture" repeat="6 2" position="0 0 0.01" rotation="0 180 0"></a-image>
+    </a-box>
 
-    <!-- Освещение -->
+    <!-- ===== ПОЛ И ПОТОЛОК (жёлто-оранжевая сетка) ===== -->
+    <!-- Пол -->
+    <a-plane position="0 0 0" rotation="-90 0 0" width="12" height="12" color="#ffaa33">
+      <a-image src="#yellow-grid" repeat="6 6" position="0 0 0.01"></a-image>
+    </a-plane>
+    
+    <!-- Потолок -->
+    <a-plane position="0 4 0" rotation="90 0 0" width="12" height="12" color="#ffaa33">
+      <a-image src="#yellow-grid" repeat="6 6" position="0 0 0.01"></a-image>
+    </a-plane>
+
+    <!-- ===== ТЕКСТУРЫ ===== -->
+    <a-assets>
+      <!-- Текстура для стен (сетка) -->
+      <canvas id="grid-canvas" width="128" height="128"></canvas>
+      <!-- Текстура для пола/потолка (жёлто-оранжевая сетка) -->
+      <canvas id="yellow-grid-canvas" width="128" height="128"></canvas>
+    </a-assets>
+
+    <!-- ===== ОСВЕЩЕНИЕ ===== -->
     <a-light type="ambient" intensity="0.6"></a-light>
     <a-light type="directional" position="5 10 5" intensity="0.8"></a-light>
 
-    <!-- Камера (ваши глаза) -->
+    <!-- ===== КАМЕРА ===== -->
     <a-camera id="camera" position="0 0.5 0" look-controls>
+      <!-- КРАСНАЯ ТОЧКА (всегда по центру) -->
+      <a-circle position="0 0 -2.5" radius="0.035" color="#ff0000" material="side: double; shader: flat"></a-circle>
       
-      <!-- КРАСНАЯ ТОЧКА - всегда по центру, никогда не исчезает -->
-      <a-circle position="0 0 -2.5" radius="0.035" color="#ff0000" 
-                material="side: double; shader: flat">
-      </a-circle>
-      
-      <!-- МАЛЕНЬКИЙ КРУЖОК С ОТСЧЁТОМ (появляется при наведении на блок) -->
+      <!-- КРУЖОК ДЛЯ ОТСЧЁТА -->
       <a-entity id="fuse-container" position="0 0 -2.5" visible="false">
-        <!-- Внешний круг -->
         <a-circle radius="0.09" color="#00ff44" opacity="0.8" material="side: double; shader: flat"></a-circle>
-        <!-- Заполняющийся круг (таймер) -->
-        <a-circle id="fuse-fill" radius="0.07" color="#ffdd00" opacity="0.9" 
-                  material="side: double; shader: flat"></a-circle>
-        <!-- Цифра отсчёта -->
-        <a-text id="fuse-number" value="5" position="0 0 -0.01" 
-                color="white" align="center" width="0.3" scale="0.6 0.6 0.6"
-                material="shader: flat"></a-text>
+        <a-circle id="fuse-fill" radius="0.07" color="#ffdd00" opacity="0.9" material="side: double; shader: flat"></a-circle>
+        <a-text id="fuse-number" value="5" position="0 0 -0.01" color="white" align="center" width="0.3" scale="0.6 0.6 0.6" material="shader: flat"></a-text>
       </a-entity>
       
-      <!-- Луч для определения, куда смотрим -->
-      <a-entity id="raycaster" 
-                raycaster="objects: .block; far: 6; interval: 50">
-      </a-entity>
+      <!-- ЛУЧ ДЛЯ НАВЕДЕНИЯ -->
+      <a-entity id="raycaster" raycaster="objects: .block, .floor; far: 6; interval: 50"></a-entity>
     </a-camera>
 
-    <!-- Несколько блоков в комнате для начала -->
-    <a-box class="block" position="-1 0.25 -2" width="0.5" height="0.5" depth="0.5" color="#ff4444"
-           dynamic-body="mass: 1; shape: box"></a-box>
-    <a-box class="block" position="1.5 0.25 -3" width="0.5" height="0.5" depth="0.5" color="#44aaff"
-           dynamic-body="mass: 1; shape: box"></a-box>
-    <a-box class="block" position="0 0.25 -4.5" width="0.5" height="0.5" depth="0.5" color="#44ff88"
-           dynamic-body="mass: 1; shape: box"></a-box>
-    <a-box class="block" position="-2 0.25 -4" width="0.5" height="0.5" depth="0.5" color="#ffaa44"
-           dynamic-body="mass: 1; shape: box"></a-box>
-    <a-box class="block" position="2 0.25 -5" width="0.5" height="0.5" depth="0.5" color="#cc66ff"
-           dynamic-body="mass: 1; shape: box"></a-box>
+    <!-- ===== БЛОКИ ===== -->
+    <a-box class="block" position="-1 0.25 -2" width="0.5" height="0.5" depth="0.5" color="#ff4444" dynamic-body="mass: 1; shape: box"></a-box>
+    <a-box class="block" position="1.5 0.25 -3" width="0.5" height="0.5" depth="0.5" color="#44aaff" dynamic-body="mass: 1; shape: box"></a-box>
+    <a-box class="block" position="0 0.25 -4.5" width="0.5" height="0.5" depth="0.5" color="#44ff88" dynamic-body="mass: 1; shape: box"></a-box>
+    <a-box class="block" position="-2 0.25 -4" width="0.5" height="0.5" depth="0.5" color="#ffaa44" dynamic-body="mass: 1; shape: box"></a-box>
+    <a-box class="block" position="2 0.25 -5" width="0.5" height="0.5" depth="0.5" color="#cc66ff" dynamic-body="mass: 1; shape: box"></a-box>
 
   </a-scene>
 
   <script>
+    // ===== СОЗДАЁМ ТЕКСТУРЫ =====
+    function createGridTexture(canvasId, lineColor, bgColor, cellSize = 16) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+      
+      // Заливка фона
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Рисуем сетку
+      ctx.strokeStyle = lineColor;
+      ctx.lineWidth = 4;
+      
+      for (let x = 0; x <= canvas.width; x += cellSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      
+      for (let y = 0; y <= canvas.height; y += cellSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+      
+      // Превращаем canvas в текстуру для A-Frame
+      const texture = document.createElement('img');
+      texture.id = canvasId + '-texture';
+      texture.src = canvas.toDataURL('image/png');
+      document.querySelector('a-assets').appendChild(texture);
+    }
+    
+    // Создаём текстуры после загрузки страницы
+    window.addEventListener('load', function() {
+      // Для стен: серый фон, чёрные линии
+      createGridTexture('grid-canvas', '#444444', '#e0e0e0', 16);
+      // Для пола/потолка: жёлто-оранжевый фон, оранжевые линии
+      createGridTexture('yellow-grid-canvas', '#cc7700', '#ffbb33', 16);
+    });
+
+    // ===== ЛОГИКА ИГРЫ =====
     const dropBtn = document.getElementById('drop-btn');
     const info = document.getElementById('info');
-    
-    // Элементы сцены
     const scene = document.querySelector('a-scene');
     const camera = document.querySelector('#camera');
     const raycaster = document.querySelector('#raycaster');
@@ -129,113 +179,103 @@
     const fuseFill = document.querySelector('#fuse-fill');
     const fuseNumber = document.querySelector('#fuse-number');
     
-    // Состояние игры
-    let carriedBlock = null;      // Блок, который мы несём
-    let isFusing = false;        // Идёт ли отсчёт
-    let fuseTime = 0;            // Текущее время отсчёта
-    let selectedBlock = null;    // Блок, на который смотрим
+    let carriedBlock = null;
+    let isFusing = false;
+    let fuseTime = 0;
+    let selectedTarget = null;
+    let isTeleporting = false;
     
-    // Настройки
-    const FUSE_DURATION = 5;     // 5 секунд до взятия
+    const FUSE_DURATION_BLOCK = 5;
+    const FUSE_DURATION_TELEPORT = 4;
     
-    // ===== ФУНКЦИЯ ВЗЯТЬ БЛОК =====
+    // ===== ВЗЯТЬ БЛОК =====
     function pickUpBlock(block) {
-      if (carriedBlock) return; // Уже несём блок
-      
+      if (carriedBlock) return;
       carriedBlock = block;
-      // Отключаем физику у блока
       block.removeAttribute('dynamic-body');
-      // Делаем блок чадом камеры (следует за взглядом)
       camera.appendChild(block);
-      // Позиционируем перед камерой
       block.setAttribute('position', '0 0 -1.5');
-      // Немного поворачиваем для красоты
-      block.setAttribute('rotation', '0 0 0');
-      
-      // Скрываем кружок
       fuseContainer.setAttribute('visible', 'false');
       isFusing = false;
-      
-      info.textContent = '✋ Блок взят! Нажми "БРОСИТЬ БЛОК", чтобы кинуть его';
-      info.style.borderColor = '#44ff44';
+      info.textContent = '✋ Блок взят! Нажми "БРОСИТЬ"';
     }
     
-    // ===== ФУНКЦИЯ БРОСИТЬ БЛОК =====
+    // ===== ТЕЛЕПОРТ =====
+    function teleportTo(position) {
+      const newPos = {
+        x: position.x,
+        y: 0.5,
+        z: position.z
+      };
+      camera.setAttribute('position', newPos);
+      info.textContent = '🌀 Телепорт!';
+      setTimeout(() => {
+        info.textContent = '🎯 Наведись на блок на 5 сек';
+      }, 1000);
+    }
+    
+    // ===== БРОСИТЬ БЛОК =====
     function dropBlock() {
       if (!carriedBlock) {
-        info.textContent = '⚠️ Сначала возьми блок (наведись на 5 сек)';
-        info.style.borderColor = '#ffaa00';
-        setTimeout(() => {
-          info.textContent = '🎯 Наведись на блок на 5 секунд, чтобы взять его';
-          info.style.borderColor = 'rgba(255,255,255,0.2)';
-        }, 2000);
+        info.textContent = '⚠️ Сначала возьми блок';
         return;
       }
-      
-      // Возвращаем блок в сцену
       const block = carriedBlock;
       camera.removeChild(block);
       scene.appendChild(block);
       
-      // Получаем позицию камеры и направление взгляда
       const camPos = camera.getAttribute('position');
       const direction = new THREE.Vector3(0, 0, -1);
       const quat = camera.object3D.quaternion;
       direction.applyQuaternion(quat);
       
-      // Бросаем вперёд с небольшой высотой
-      const throwPos = {
+      block.setAttribute('position', {
         x: camPos.x + direction.x * 2,
         y: camPos.y + direction.y * 1.5 + 0.3,
         z: camPos.z + direction.z * 2
-      };
-      
-      block.setAttribute('position', throwPos);
-      block.setAttribute('dynamic-body', 'mass: 1; shape: box');
-      
-      // Добавляем импульс для полёта
-      block.addEventListener('body-loaded', function() {
-        const body = block.components['dynamic-body'].body;
-        if (body) {
-          const impulse = new THREE.Vector3(
-            direction.x * 0.5,
-            0.3,
-            direction.z * 0.5
-          );
-          body.applyImpulse(impulse, body.position);
-        }
       });
+      block.setAttribute('dynamic-body', 'mass: 1; shape: box');
       
       carriedBlock = null;
       info.textContent = '💥 Блок брошен!';
-      info.style.borderColor = '#ff4444';
-      setTimeout(() => {
-        info.textContent = '🎯 Наведись на блок на 5 секунд, чтобы взять его';
-        info.style.borderColor = 'rgba(255,255,255,0.2)';
-      }, 1500);
     }
     
     // ===== ОБРАБОТЧИК НАВЕДЕНИЯ =====
     raycaster.addEventListener('mouseenter', function(evt) {
       const target = evt.detail.intersectedEl;
       
-      // Если это блок и мы не несём другой блок
+      if (!target) return;
+      
+      // Если это блок и мы не несём блок
       if (target.classList && target.classList.contains('block') && !carriedBlock) {
-        selectedBlock = target;
+        selectedTarget = target;
         isFusing = true;
-        fuseTime = FUSE_DURATION;
+        fuseTime = FUSE_DURATION_BLOCK;
         fuseContainer.setAttribute('visible', 'true');
         fuseNumber.setAttribute('value', Math.ceil(fuseTime));
-        fuseFill.setAttribute('radius', '0.07'); // Полный круг
+        fuseFill.setAttribute('radius', '0.07');
+        info.textContent = `⏳ Берём блок... ${Math.ceil(fuseTime)}`;
+        return;
+      }
+      
+      // Если это пол (для телепортации)
+      if (target.classList && target.classList.contains('floor') && !carriedBlock) {
+        selectedTarget = target;
+        isFusing = true;
+        fuseTime = FUSE_DURATION_TELEPORT;
+        fuseContainer.setAttribute('visible', 'true');
+        fuseNumber.setAttribute('value', Math.ceil(fuseTime));
+        fuseFill.setAttribute('radius', '0.07');
+        info.textContent = `🌀 Телепорт... ${Math.ceil(fuseTime)}`;
       }
     });
     
     raycaster.addEventListener('mouseleave', function(evt) {
-      // Если ушли с блока - сбрасываем отсчёт
       if (isFusing) {
         isFusing = false;
         fuseContainer.setAttribute('visible', 'false');
-        selectedBlock = null;
+        selectedTarget = null;
+        info.textContent = '🎯 Наведись на блок на 5 сек';
       }
     });
     
@@ -246,25 +286,28 @@
       const delta = (now - lastTime) / 1000;
       lastTime = now;
       
-      // Обновляем таймер, если идёт отсчёт
-      if (isFusing && selectedBlock && !carriedBlock) {
+      if (isFusing && selectedTarget) {
         fuseTime -= delta;
         
         if (fuseTime <= 0) {
-          // Время вышло - берём блок!
-          pickUpBlock(selectedBlock);
-          selectedBlock = null;
+          // Время вышло
+          if (selectedTarget.classList && selectedTarget.classList.contains('block')) {
+            pickUpBlock(selectedTarget);
+          } else if (selectedTarget.classList && selectedTarget.classList.contains('floor')) {
+            const point = selectedTarget.getAttribute('position');
+            teleportTo(point);
+          }
+          isFusing = false;
+          fuseContainer.setAttribute('visible', 'false');
+          selectedTarget = null;
         } else {
-          // Обновляем кружок и цифру
-          const progress = fuseTime / FUSE_DURATION;
-          const radius = 0.07 * progress;
-          fuseFill.setAttribute('radius', radius);
+          // Обновляем кружок
+          const progress = fuseTime / (selectedTarget.classList.contains('block') ? FUSE_DURATION_BLOCK : FUSE_DURATION_TELEPORT);
+          fuseFill.setAttribute('radius', 0.07 * progress);
           fuseNumber.setAttribute('value', Math.ceil(fuseTime));
+          info.textContent = `⏳ ${Math.ceil(fuseTime)}...`;
         }
       }
-      
-      // Если несём блок, он автоматически следует за камерой
-      // (уже прикреплён к камере через camera.appendChild)
       
       requestAnimationFrame(updateLoop);
     }
@@ -276,16 +319,7 @@
       dropBlock();
     });
     
-    // ===== ДОБАВЛЯЕМ НОВЫЕ БЛОКИ ПО КЛИКУ НА ЭКРАН (для удобства) =====
-    document.addEventListener('click', function(e) {
-      // Если клик не по кнопке - ничего не делаем
-      if (e.target.id === 'drop-btn') return;
-      
-      // Для отладки: можно добавить блок в случайное место
-      // Но пока оставим только через кнопку броска
-    });
-    
-    console.log('VR Взятие блоков запущено! Наводитесь на блоки и забирайте их.');
+    console.log('VR Строитель + Телепорт запущен!');
   </script>
 </body>
-                                                                                 </html>
+      </html>
