@@ -1,436 +1,353 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>VR Park - Строитель с телепортом</title>
-  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@1.4.0/dist/aframe-physics-system.min.js"></script>
-  
-  <style>
-    body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; background: #000; }
-    
-    #crosshair {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 16px;
-      height: 16px;
-      background: radial-gradient(circle, #ff0000 30%, rgba(255,0,0,0) 70%);
-      border-radius: 50%;
-      z-index: 1000;
-      pointer-events: none;
-      box-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
-      border: 2px solid rgba(255, 50, 50, 0.9);
-    }
-
-    #fuse-circle {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -70%);
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background: conic-gradient(#00ff44 0% 0%, rgba(0, 255, 68, 0.2) 0% 100%);
-      border: 3px solid #00ff44;
-      z-index: 1000;
-      pointer-events: none;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 30px rgba(0, 255, 0, 0.4);
-    }
-
-    #fuse-text {
-      color: white;
-      font-size: 24px;
-      font-weight: bold;
-      text-shadow: 0 0 10px black;
-      background: rgba(0,0,0,0.5);
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-family: monospace;
-    }
-
-    #drop-btn {
-      position: fixed;
-      bottom: 40px;
-      right: 40px;
-      width: 110px;
-      height: 110px;
-      border-radius: 50%;
-      background: #ff2222;
-      color: white;
-      font-size: 20px;
-      font-weight: bold;
-      border: 4px solid white;
-      box-shadow: 0 0 40px rgba(255, 0, 0, 0.7);
-      z-index: 999;
-      touch-action: manipulation;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      line-height: 1.3;
-      padding: 10px;
-      user-select: none;
-      cursor: pointer;
-    }
-    #drop-btn:active { transform: scale(0.85); background: #cc0000; }
-
-    #vr-btn {
-      position: fixed;
-      bottom: 40px;
-      left: 40px;
-      width: 110px;
-      height: 110px;
-      border-radius: 50%;
-      background: #4444ff;
-      color: white;
-      font-size: 18px;
-      font-weight: bold;
-      border: 4px solid white;
-      box-shadow: 0 0 40px rgba(0, 0, 255, 0.7);
-      z-index: 999;
-      touch-action: manipulation;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      line-height: 1.3;
-      padding: 10px;
-      user-select: none;
-      cursor: pointer;
-    }
-    #vr-btn:active { transform: scale(0.85); background: #3333cc; }
-
-    #info {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: white;
-      font-size: 18px;
-      background: rgba(0,0,0,0.8);
-      padding: 10px 24px;
-      border-radius: 40px;
-      z-index: 999;
-      border: 2px solid rgba(255,255,255,0.3);
-      pointer-events: none;
-      white-space: nowrap;
-      text-align: center;
-      font-family: Arial;
-      backdrop-filter: blur(4px);
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VR Park - Телепортация взглядом</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 10px 20px;
+            border-radius: 10px;
+            pointer-events: none;
+            z-index: 10;
+        }
+        #counter {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform: translate(-50%, 50%);
+            color: white;
+            font-size: 48px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255,0,0,0.8);
+            pointer-events: none;
+            z-index: 20;
+            display: none;
+        }
+        #enter-vr {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px;
+            font-size: 18px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            z-index: 30;
+            transition: all 0.3s;
+        }
+        #enter-vr:hover {
+            background: #45a049;
+            transform: translateX(-50%) scale(1.05);
+        }
+        #status {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 10;
+            pointer-events: none;
+        }
+    </style>
 </head>
 <body>
+    <div id="info">
+        <h2>🎮 VR Park</h2>
+        <p>Смотрите на пол для телепортации</p>
+    </div>
+    <div id="counter"></div>
+    <div id="status">⏱️ Готов к телепортации</div>
+    <button id="enter-vr">🥽 Войти в VR</button>
 
-  <div id="crosshair"></div>
-  <div id="fuse-circle">
-    <span id="fuse-text">5</span>
-  </div>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script>
+        // Создаем сцену A-Frame
+        const scene = document.createElement('a-scene');
+        scene.setAttribute('renderer', 'antialias: true');
+        scene.setAttribute('vr-mode-ui', 'enabled: true');
+        document.body.appendChild(scene);
 
-  <button id="vr-btn">VR<br>РЕЖИМ</button>
-  <button id="drop-btn">БРОСИТЬ<br>БЛОК</button>
-  <div id="info">🎯 Наведись на блок 5 сек - взять, на пол 4 сек - телепорт</div>
+        // Освещение
+        const ambientLight = document.createElement('a-entity');
+        ambientLight.setAttribute('light', 'type: ambient; color: #BBB; intensity: 0.5');
+        scene.appendChild(ambientLight);
 
-  <a-scene id="scene" physics="driver: local; gravity: -9.8">
-    
-    <!-- СТЕНЫ -->
-    <a-box position="0 2 -6" width="12" height="4" depth="0.3" color="#d0d0d0" static-body></a-box>
-    <a-box position="-6 2 0" width="0.3" height="4" depth="12" color="#d0d0d0" static-body></a-box>
-    <a-box position="6 2 0" width="0.3" height="4" depth="12" color="#d0d0d0" static-body></a-box>
-    <a-box position="0 2 6" width="12" height="4" depth="0.3" color="#d0d0d0" opacity="0.15" static-body></a-box>
+        const directionalLight = document.createElement('a-entity');
+        directionalLight.setAttribute('light', 'type: directional; color: #FFF; intensity: 1');
+        directionalLight.setAttribute('position', '1 3 2');
+        scene.appendChild(directionalLight);
 
-    <!-- ПОЛ И ПОТОЛОК -->
-    <a-plane class="floor" position="0 0 0" rotation="-90 0 0" width="12" height="12" color="#ffaa33" static-body></a-plane>
-    <a-plane position="0 4 0" rotation="90 0 0" width="12" height="12" color="#ffaa33" static-body></a-plane>
+        // Пол
+        const floor = document.createElement('a-plane');
+        floor.setAttribute('position', '0 0 0');
+        floor.setAttribute('rotation', '-90 0 0');
+        floor.setAttribute('width', '20');
+        floor.setAttribute('height', '20');
+        floor.setAttribute('color', '#7B7B7B');
+        floor.setAttribute('material', 'roughness: 0.8; metalness: 0.2');
+        floor.setAttribute('class', 'floor');
+        scene.appendChild(floor);
 
-    <!-- ОСВЕЩЕНИЕ -->
-    <a-light type="ambient" intensity="0.7"></a-light>
-    <a-light type="directional" position="5 10 5" intensity="0.9"></a-light>
-    <a-light type="point" position="0 3 0" intensity="0.3" color="#ffaa55"></a-light>
+        // Разметка на полу
+        const gridLines = document.createElement('a-grid');
+        gridLines.setAttribute('position', '0 0.01 0');
+        gridLines.setAttribute('rotation', '-90 0 0');
+        gridLines.setAttribute('width', '20');
+        gridLines.setAttribute('height', '20');
+        gridLines.setAttribute('gridsize', '2');
+        gridLines.setAttribute('thickness', '0.02');
+        gridLines.setAttribute('color', '#555');
+        scene.appendChild(gridLines);
 
-    <!-- ПРАВАЯ РУКА ДЛЯ VR (будет носить блок) -->
-    <a-entity id="rightHand" hand-tracking-controls="hand: right"></a-entity>
-
-    <!-- КАМЕРА -->
-    <a-camera id="camera" position="0 1.6 0" look-controls
-              raycaster="objects: .block, .floor; far: 10; interval: 100">
-    </a-camera>
-
-    <!-- БЛОКИ -->
-    <a-box class="block" position="-1.5 0.25 -2" width="0.5" height="0.5" depth="0.5" color="#ff5555" dynamic-body="mass: 1; shape: box"></a-box>
-    <a-box class="block" position="1.5 0.25 -2.5" width="0.5" height="0.5" depth="0.5" color="#55aaff" dynamic-body="mass: 1; shape: box"></a-box>
-    <a-box class="block" position="0 0.25 -4" width="0.5" height="0.5" depth="0.5" color="#55ff88" dynamic-body="mass: 1; shape: box"></a-box>
-    <a-box class="block" position="-2.5 0.25 -4.5" width="0.5" height="0.5" depth="0.5" color="#ffaa55" dynamic-body="mass: 1; shape: box"></a-box>
-    <a-box class="block" position="2.5 0.25 -5" width="0.5" height="0.5" depth="0.5" color="#cc77ff" dynamic-body="mass: 1; shape: box"></a-box>
-
-  </a-scene>
-
-  <script>
-    (function() {
-      const fuseCircle = document.getElementById('fuse-circle');
-      const fuseText = document.getElementById('fuse-text');
-      const info = document.getElementById('info');
-      const dropBtn = document.getElementById('drop-btn');
-      const vrBtn = document.getElementById('vr-btn');
-      const scene = document.querySelector('#scene');
-      const camera = document.querySelector('#camera');
-      const rightHand = document.querySelector('#rightHand');
-
-      let carriedBlock = null;
-      let isFusing = false;
-      let fuseTimer = 0;
-      let fuseTarget = null;
-      let fuseType = null;
-      let fuseDuration = 5;
-      const TELEPORT_DURATION = 4;
-
-      // ===== ВЗЯТЬ БЛОК =====
-      function pickUpBlock(block) {
-        if (carriedBlock) return;
-        carriedBlock = block;
-        block.removeAttribute('dynamic-body');
+        // Стены
+        const wallColor = '#E8E8E8';
         
-        // Прикрепляем блок к камере (перед глазами)
-        camera.appendChild(block);
-        block.setAttribute('position', '0 -0.5 -1.5');
-        block.setAttribute('rotation', '0 0 0');
-        
-        fuseCircle.style.display = 'none';
-        isFusing = false;
-        info.textContent = '✋ Блок взят! Иди куда хочешь, нажми БРОСИТЬ чтобы поставить';
-        info.style.borderColor = '#44ff44';
-      }
-
-      // ===== ТЕЛЕПОРТ =====
-      function teleportTo(position) {
-        // Перемещаем камеру (игрока)
-        camera.setAttribute('position', {
-          x: position.x,
-          y: 1.6,
-          z: position.z
-        });
-        
-        info.textContent = '🌀 Телепорт! Ты переместился';
-        info.style.borderColor = '#44aaff';
-        
-        // Эффект вспышки
-        const flash = document.createElement('div');
-        flash.style.cssText = `
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: white;
-          z-index: 9999;
-          pointer-events: none;
-          transition: opacity 0.5s;
-        `;
-        document.body.appendChild(flash);
-        setTimeout(() => {
-          flash.style.opacity = '0';
-          setTimeout(() => flash.remove(), 500);
-        }, 100);
-        
-        setTimeout(() => {
-          info.textContent = '🎯 Наведись на блок 5 сек - взять, на пол 4 сек - телепорт';
-          info.style.borderColor = 'rgba(255,255,255,0.3)';
-        }, 2000);
-      }
-
-      // ===== БРОСИТЬ/ПОСТАВИТЬ БЛОК =====
-      function dropBlock() {
-        if (!carriedBlock) {
-          info.textContent = '⚠️ Сначала возьми блок (наведись на 5 сек)';
-          info.style.borderColor = '#ffaa00';
-          setTimeout(() => {
-            info.textContent = '🎯 Наведись на блок 5 сек - взять, на пол 4 сек - телепорт';
-            info.style.borderColor = 'rgba(255,255,255,0.3)';
-          }, 2000);
-          return;
+        function createWall(position, rotation, width, height) {
+            const wall = document.createElement('a-plane');
+            wall.setAttribute('position', position);
+            wall.setAttribute('rotation', rotation);
+            wall.setAttribute('width', width);
+            wall.setAttribute('height', height);
+            wall.setAttribute('color', wallColor);
+            wall.setAttribute('material', 'roughness: 0.9; metalness: 0.1; side: double');
+            scene.appendChild(wall);
         }
 
-        const block = carriedBlock;
-        
-        // Получаем позицию и направление камеры
-        const camPos = camera.getAttribute('position');
-        const camRot = camera.getAttribute('rotation');
-        
-        // Вычисляем направление вперед
-        const radY = THREE.MathUtils.degToRad(camRot.y);
-        const dirX = -Math.sin(radY);
-        const dirZ = -Math.cos(radY);
-        
-        // Позиция для установки блока (на полу перед игроком)
-        const placePos = {
-          x: camPos.x + dirX * 2,
-          y: 0.25, // На полу
-          z: camPos.z + dirZ * 2
-        };
-        
-        // Перемещаем блок обратно в сцену
-        camera.removeChild(block);
-        scene.appendChild(block);
-        
-        // Устанавливаем позицию
-        block.setAttribute('position', placePos);
-        block.setAttribute('dynamic-body', 'mass: 1; shape: box');
-        
-        carriedBlock = null;
-        info.textContent = '📦 Блок поставлен!';
-        info.style.borderColor = '#ffaa00';
-        
-        // Эффект установки
-        block.setAttribute('color', '#ffff00');
-        setTimeout(() => {
-          block.setAttribute('color', block.getAttribute('data-original-color') || '#ff5555');
-        }, 300);
-        
-        setTimeout(() => {
-          info.textContent = '🎯 Наведись на блок 5 сек - взять, на пол 4 сек - телепорт';
-          info.style.borderColor = 'rgba(255,255,255,0.3)';
-        }, 2000);
-      }
+        createWall('0 2 -10', '0 0 0', '20', '4');     // Задняя стена
+        createWall('0 2 10', '0 180 0', '20', '4');     // Передняя стена
+        createWall('-10 2 0', '0 90 0', '20', '4');     // Левая стена
+        createWall('10 2 0', '0 -90 0', '20', '4');     // Правая стена
 
-      // Сохраняем оригинальный цвет блока при создании
-      document.querySelectorAll('.block').forEach(block => {
-        block.setAttribute('data-original-color', block.getAttribute('color'));
-      });
+        // Потолок
+        const ceiling = document.createElement('a-plane');
+        ceiling.setAttribute('position', '0 4 0');
+        ceiling.setAttribute('rotation', '90 0 0');
+        ceiling.setAttribute('width', '20');
+        ceiling.setAttribute('height', '20');
+        ceiling.setAttribute('color', '#F0F0F0');
+        ceiling.setAttribute('material', 'roughness: 0.9; metalness: 0.1; side: double');
+        scene.appendChild(ceiling);
 
-      // ===== ОБРАБОТЧИКИ RAYCASTER =====
-      camera.addEventListener('raycaster-intersection', function(evt) {
-        const intersections = evt.detail.intersections;
-        if (intersections.length === 0 || carriedBlock) {
-          if (isFusing) cancelFuse();
-          return;
+        // Декоративные элементы
+        function createBox(x, y, z, color, w, h, d) {
+            const box = document.createElement('a-box');
+            box.setAttribute('position', `${x} ${y} ${z}`);
+            box.setAttribute('width', w || 1);
+            box.setAttribute('height', h || 1);
+            box.setAttribute('depth', d || 1);
+            box.setAttribute('color', color);
+            box.setAttribute('material', 'roughness: 0.5; metalness: 0.3');
+            scene.appendChild(box);
         }
 
-        const target = intersections[0].object.el;
-        if (!target) return;
+        // Разноцветные кубы по комнате
+        createBox(-3, 0.5, -3, '#FF6B6B', 1, 1, 1);
+        createBox(3, 0.5, -3, '#4ECDC4', 1, 1.5, 1);
+        createBox(-3, 0.5, 3, '#45B7D1', 1.5, 1, 1);
+        createBox(3, 0.5, 3, '#96CEB4', 1, 1, 1.5);
+        createBox(0, 0.25, -5, '#FFEAA7', 2, 0.5, 2);
+        createBox(-5, 0.75, 0, '#DDA0DD', 0.8, 1.5, 0.8);
 
-        if (target.classList.contains('block')) {
-          if (fuseTarget !== target || fuseType !== 'block') {
-            fuseTarget = target;
-            fuseType = 'block';
-            fuseDuration = 5;
-            startFuse();
-          }
-        } else if (target.classList.contains('floor')) {
-          if (fuseTarget !== target || fuseType !== 'floor') {
-            fuseTarget = target;
-            fuseType = 'floor';
-            fuseDuration = TELEPORT_DURATION;
-            startFuse();
-          }
-        } else {
-          if (isFusing) cancelFuse();
-        }
-      });
+        // Сфера в углу
+        const sphere = document.createElement('a-sphere');
+        sphere.setAttribute('position', '5 0.8 -5');
+        sphere.setAttribute('radius', '0.8');
+        sphere.setAttribute('color', '#FF8C00');
+        sphere.setAttribute('material', 'roughness: 0.3; metalness: 0.5');
+        scene.appendChild(sphere);
 
-      camera.addEventListener('raycaster-intersection-cleared', function() {
-        if (isFusing) cancelFuse();
-      });
+        // Цилиндр
+        const cylinder = document.createElement('a-cylinder');
+        cylinder.setAttribute('position', '-5 0.75 5');
+        cylinder.setAttribute('radius', '0.5');
+        cylinder.setAttribute('height', '1.5');
+        cylinder.setAttribute('color', '#8B4513');
+        cylinder.setAttribute('material', 'roughness: 0.6; metalness: 0.2');
+        scene.appendChild(cylinder);
 
-      // ===== УПРАВЛЕНИЕ ОТСЧЕТОМ =====
-      function startFuse() {
-        if (isFusing) return;
-        isFusing = true;
-        fuseTimer = fuseDuration;
-        fuseCircle.style.display = 'flex';
-        fuseText.textContent = Math.ceil(fuseTimer);
-        updateFuseCircle(1);
-      }
+        // Камера игрока
+        const camera = document.createElement('a-entity');
+        camera.setAttribute('camera', '');
+        camera.setAttribute('position', '0 1.6 0');
+        camera.setAttribute('look-controls', '');
+        camera.setAttribute('wasd-controls', 'acceleration: 100');
+        scene.appendChild(camera);
 
-      function cancelFuse() {
-        isFusing = false;
-        fuseCircle.style.display = 'none';
-        fuseTarget = null;
-        fuseType = null;
-        if (!carriedBlock) {
-          info.textContent = '🎯 Наведись на блок 5 сек - взять, на пол 4 сек - телепорт';
-          info.style.borderColor = 'rgba(255,255,255,0.3)';
-        }
-      }
+        // Красная точка в центре (прицел)
+        const reticle = document.createElement('a-ring');
+        reticle.setAttribute('position', '0 0 -1.5');
+        reticle.setAttribute('radius-inner', '0.005');
+        reticle.setAttribute('radius-outer', '0.01');
+        reticle.setAttribute('color', '#FF0000');
+        reticle.setAttribute('material', 'shader: flat; emissive: #FF0000; emissiveIntensity: 1');
+        reticle.setAttribute('id', 'reticle');
+        camera.appendChild(reticle);
 
-      function updateFuseCircle(progress) {
-        const angle = progress * 360;
-        fuseCircle.style.background = `conic-gradient(#00ff44 ${angle}deg, rgba(0, 255, 68, 0.2) ${angle}deg 360deg)`;
-      }
+        // Внутренняя точка
+        const innerDot = document.createElement('a-ring');
+        innerDot.setAttribute('position', '0 0 -1.5');
+        innerDot.setAttribute('radius-inner', '0.001');
+        innerDot.setAttribute('radius-outer', '0.004');
+        innerDot.setAttribute('color', '#FF3333');
+        innerDot.setAttribute('material', 'shader: flat; emissive: #FF0000; emissiveIntensity: 1.5');
+        camera.appendChild(innerDot);
 
-      // ===== ГЛАВНЫЙ ЦИКЛ =====
-      let lastTime = Date.now();
-      function updateLoop() {
-        const now = Date.now();
-        const delta = (now - lastTime) / 1000;
-        lastTime = now;
+        // Элемент для отслеживания пересечения с полом
+        const cursor = document.createElement('a-entity');
+        cursor.setAttribute('cursor', 'rayOrigin: mouse; fuse: false');
+        cursor.setAttribute('raycaster', 'objects: .floor; far: 20');
+        cursor.setAttribute('id', 'cursor');
+        camera.appendChild(cursor);
 
-        if (isFusing && fuseTarget) {
-          fuseTimer -= delta;
-          if (fuseTimer <= 0) {
-            // Время вышло - действие!
-            if (fuseType === 'block' && !carriedBlock) {
-              pickUpBlock(fuseTarget);
-            } else if (fuseType === 'floor') {
-              const pos = fuseTarget.getAttribute('position');
-              teleportTo(pos);
+        // Переменные для отсчета
+        let lookTimer = null;
+        let countdownValue = 5;
+        let isLookingAtFloor = false;
+        const counterElement = document.getElementById('counter');
+        const statusElement = document.getElementById('status');
+
+        // Функция обновления отсчета
+        function updateCounter() {
+            if (countdownValue > 0) {
+                counterElement.textContent = countdownValue;
+                statusElement.textContent = `⏱️ Телепортация через ${countdownValue}...`;
+                countdownValue--;
+            } else {
+                // Телепортация!
+                performTeleport();
+                resetTimer();
             }
-            isFusing = false;
-            fuseCircle.style.display = 'none';
-            fuseTarget = null;
-            fuseType = null;
-          } else {
-            const progress = fuseTimer / fuseDuration;
-            updateFuseCircle(1 - progress);
-            fuseText.textContent = Math.ceil(fuseTimer);
-            info.textContent = `⏳ ${fuseType === 'block' ? 'Взятие блока' : 'Телепорт'}: ${Math.ceil(fuseTimer)}`;
-          }
         }
 
-        requestAnimationFrame(updateLoop);
-      }
-      updateLoop();
-
-      // ===== КНОПКИ =====
-      dropBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        dropBlock();
-      });
-
-      vrBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        // Вход в VR режим
-        if (scene.is('vr-mode')) {
-          scene.exitVR();
-        } else {
-          scene.enterVR();
+        // Сброс таймера
+        function resetTimer() {
+            if (lookTimer) {
+                clearInterval(lookTimer);
+                lookTimer = null;
+            }
+            countdownValue = 5;
+            counterElement.style.display = 'none';
+            isLookingAtFloor = false;
+            statusElement.textContent = '⏱️ Готов к телепортации';
         }
-      });
 
-      // Отслеживаем вход/выход из VR
-      scene.addEventListener('enter-vr', function() {
-        info.textContent = '🥽 VR режим! Смотри на блок 5 сек - взять';
-        info.style.borderColor = '#4444ff';
-        vrBtn.textContent = 'ВЫХОД\nИЗ VR';
-      });
+        // Выполнение телепортации
+        function performTeleport() {
+            // Получаем текущее направление взгляда
+            const cameraEl = camera;
+            const cameraWorldPos = new THREE.Vector3();
+            const cameraWorldQuat = new THREE.Quaternion();
+            
+            cameraEl.object3D.getWorldPosition(cameraWorldPos);
+            cameraEl.object3D.getWorldQuaternion(cameraWorldQuat);
 
-      scene.addEventListener('exit-vr', function() {
-        info.textContent = '🎯 Наведись на блок 5 сек - взять, на пол 4 сек - телепорт';
-        info.style.borderColor = 'rgba(255,255,255,0.3)';
-        vrBtn.textContent = 'VR\nРЕЖИМ';
-      });
+            // Направление взгляда
+            const direction = new THREE.Vector3(0, 0, -1);
+            direction.applyQuaternion(cameraWorldQuat);
+            direction.normalize();
 
-      console.log('✅ VR игра готова!');
-      console.log('📱 На телефоне: наведись на блок 5 сек - возьмешь, на пол 4 сек - телепорт');
-      console.log('🥽 В VR шлеме: блок следует за тобой, кнопка БРОСИТЬ ставит его');
-      console.log('🔵 Кнопка VR РЕЖИМ - вход в полноценный VR');
-    })();
-  </script>
+            // Находим точку пересечения с плоскостью пола (y = 0)
+            if (direction.y < 0) {
+                const t = -cameraWorldPos.y / direction.y;
+                if (t > 0 && t < 20) {
+                    const targetX = cameraWorldPos.x + direction.x * t;
+                    const targetZ = cameraWorldPos.z + direction.z * t;
+                    
+                    // Ограничиваем координаты пределами комнаты
+                    const clampedX = Math.max(-9, Math.min(9, targetX));
+                    const clampedZ = Math.max(-9, Math.min(9, targetZ));
+                    
+                    // Телепортация
+                    cameraEl.setAttribute('position', `${clampedX} 1.6 ${clampedZ}`);
+                    
+                    // Визуальный эффект
+                    statusElement.textContent = '✨ Телепортация!';
+                    counterElement.style.display = 'none';
+                    
+                    // Эффект вспышки
+                    const flash = document.createElement('a-sphere');
+                    flash.setAttribute('position', `${clampedX} 0.1 ${clampedZ}`);
+                    flash.setAttribute('radius', '0.3');
+                    flash.setAttribute('color', '#00FF00');
+                    flash.setAttribute('material', 'opacity: 0.8; emissive: #00FF00; emissiveIntensity: 1');
+                    flash.setAttribute('animation', 'property: scale; from: 0.1 0.1 0.1; to: 2 2 2; dur: 500; easing: easeOutQuad');
+                    flash.setAttribute('animation__fade', 'property: material.opacity; from: 0.8; to: 0; dur: 500; easing: easeOutQuad');
+                    scene.appendChild(flash);
+                    
+                    setTimeout(() => {
+                        scene.removeChild(flash);
+                        statusElement.textContent = '⏱️ Готов к телепортации';
+                    }, 500);
+                }
+            }
+        }
 
+        // Обработчик событий рейкастера
+        cursor.addEventListener('raycaster-intersection', function(evt) {
+            if (evt.detail.els && evt.detail.els.length > 0) {
+                // Луч пересекает пол
+                if (!isLookingAtFloor) {
+                    isLookingAtFloor = true;
+                    countdownValue = 5;
+                    counterElement.style.display = 'block';
+                    counterElement.textContent = countdownValue;
+                    statusElement.textContent = `⏱️ Телепортация через ${countdownValue}...`;
+                    
+                    lookTimer = setInterval(updateCounter, 1000);
+                }
+            }
+        });
+
+        cursor.addEventListener('raycaster-intersection-cleared', function() {
+            // Луч больше не пересекает пол
+            if (isLookingAtFloor) {
+                resetTimer();
+            }
+        });
+
+        // Кнопка входа в VR
+        document.getElementById('enter-vr').addEventListener('click', function() {
+            if (scene.hasAttribute('vr-mode')) {
+                scene.exitVR();
+            } else {
+                scene.enterVR();
+            }
+        });
+
+        // Обновление текста кнопки при изменении режима VR
+        scene.addEventListener('enter-vr', function() {
+            document.getElementById('enter-vr').textContent = '🚪 Выйти из VR';
+            document.getElementById('info').style.display = 'none';
+        });
+
+        scene.addEventListener('exit-vr', function() {
+            document.getElementById('enter-vr').textContent = '🥽 Войти в VR';
+            document.getElementById('info').style.display = 'block';
+        });
+
+        console.log('🎮 VR Park загружен!');
+        console.log('📋 Управление:');
+        console.log('  - Смотрите на пол для начала отсчета');
+        console.log('  - Удерживайте взгляд 5 секунд для телепортации');
+        console.log('  - Нажмите кнопку "Войти в VR" для VR-режима');
+    </script>
 </body>
-      </html>
+  </html>
