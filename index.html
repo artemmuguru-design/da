@@ -2,137 +2,323 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>VR Комната - Собери предметы</title>
-  <!-- Подключаем библиотеку A-Frame для VR -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>VR Строитель блоков</title>
+  
+  <!-- A-Frame + Физика -->
   <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-  <!-- Подключаем компонент для управления взглядом -->
-  <script src="https://cdn.jsdelivr.net/npm/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@1.4.0/dist/aframe-physics-system.min.js"></script>
+  
+  <style>
+    body { margin: 0; overflow: hidden; }
+    
+    /* Кнопка "Бросить блок" — всегда видна в VR */
+    #drop-btn {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: #ff4444;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      border: 4px solid #ffffff;
+      box-shadow: 0 0 30px rgba(255,68,68,0.6);
+      z-index: 999;
+      touch-action: manipulation;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 10px;
+      line-height: 1.2;
+    }
+    #drop-btn:active {
+      transform: scale(0.9);
+      background: #cc0000;
+    }
+    
+    #info {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      font-family: Arial, sans-serif;
+      font-size: 20px;
+      background: rgba(0,0,0,0.6);
+      padding: 10px 25px;
+      border-radius: 30px;
+      z-index: 999;
+      pointer-events: none;
+      text-align: center;
+      border: 2px solid rgba(255,255,255,0.3);
+    }
+  </style>
 </head>
 <body>
 
-<a-scene>
-  <!-- ===== КОМНАТА ===== -->
-  <!-- Пол -->
-  <a-plane position="0 0 -4" rotation="-90 0 0" width="8" height="8" color="#3a3a3a"></a-plane>
+  <!-- Кнопка бросить блок -->
+  <button id="drop-btn">БРОСИТЬ<br>БЛОК</button>
   
-  <!-- Стены -->
-  <a-box position="0 2 -4" width="8" height="4" depth="0.2" color="#5a5a5a"></a-box>  <!-- Задняя -->
-  <a-box position="-4 2 0" width="0.2" height="4" depth="8" color="#4a4a4a"></a-box>  <!-- Левая -->
-  <a-box position="4 2 0" width="0.2" height="4" depth="8" color="#4a4a4a"></a-box>   <!-- Правая -->
-  <a-box position="0 4 -4" width="8" height="0.2" depth="8" color="#6a6a6a"></a-box>   <!-- Потолок -->
+  <!-- Информация на экране -->
+  <div id="info">🔴 Наведись на место на 5 сек → блок появится</div>
 
-  <!-- ===== ПРЕДМЕТЫ ДЛЯ СБОРА ===== -->
-  <!-- 1. Красный куб -->
-  <a-box position="-1.5 0.5 -3" width="0.5" height="0.5" depth="0.5" color="#ff4444"
-         data-collect="true">
-    <a-entity class="gaze-cursor"></a-entity>
-  </a-box>
+  <!-- VR СЦЕНА -->
+  <a-scene physics="driver: local; gravity: -9.8; debug: false">
+    
+    <!-- ===== КОМНАТА СО ВСЕХ СТОРОН ===== -->
+    <!-- Пол -->
+    <a-plane position="0 0 0" rotation="-90 0 0" width="12" height="12" color="#2a2a2a" material="side: double"></a-plane>
+    
+    <!-- Задняя стена -->
+    <a-box position="0 2 -6" width="12" height="4" depth="0.3" color="#3a3a3a" material="side: double"></a-box>
+    <!-- Передняя стена (прозрачная, чтобы видеть игру) -->
+    <a-box position="0 2 6" width="12" height="4" depth="0.3" color="#4a4a4a" opacity="0.15" material="side: double"></a-box>
+    <!-- Левая стена -->
+    <a-box position="-6 2 0" width="0.3" height="4" depth="12" color="#3a3a3a" material="side: double"></a-box>
+    <!-- Правая стена -->
+    <a-box position="6 2 0" width="0.3" height="4" depth="12" color="#3a3a3a" material="side: double"></a-box>
+    <!-- Потолок -->
+    <a-box position="0 4 0" width="12" height="0.3" depth="12" color="#2a2a2a" material="side: double"></a-box>
 
-  <!-- 2. Синяя сфера -->
-  <a-sphere position="1.5 0.5 -3.5" radius="0.3" color="#4488ff"
-            data-collect="true">
-    <a-entity class="gaze-cursor"></a-entity>
-  </a-sphere>
+    <!-- ===== ОСВЕЩЕНИЕ ===== -->
+    <a-light type="ambient" color="#ffffff" intensity="0.5"></a-light>
+    <a-light type="directional" position="5 10 5" intensity="0.8" cast-shadow="true"></a-light>
+    <a-light type="point" position="0 3 0" intensity="0.3" color="#ffaa55"></a-light>
 
-  <!-- 3. Зелёный цилиндр -->
-  <a-cylinder position="-2 0.3 -4.5" radius="0.3" height="0.6" color="#44ff44"
-              data-collect="true">
-    <a-entity class="gaze-cursor"></a-entity>
-  </a-cylinder>
-
-  <!-- 4. Жёлтый тор -->
-  <a-torus position="2 0.5 -4" radius="0.3" arc="0.3" color="#ffcc00"
-           data-collect="true">
-    <a-entity class="gaze-cursor"></a-entity>
-  </a-torus>
-
-  <!-- 5. Фиолетовая звезда (через Octahedron) -->
-  <a-octahedron position="0 0.5 -5" radius="0.3" color="#cc44ff"
-                data-collect="true">
-    <a-entity class="gaze-cursor"></a-entity>
-  </a-octahedron>
-
-  <!-- ===== СЧЁТЧИК ===== -->
-  <a-text id="counter" value="Предметов: 0/5" position="-1 2.5 -2.5" 
-          color="white" scale="1 1 1" align="center" width="3">
-  </a-text>
-
-  <!-- ===== ПРИЦЕЛ (крестик в центре) ===== -->
-  <a-entity position="0 0 -3">
-    <a-ring radius-inner="0.01" radius-outer="0.03" color="#00ff00"></a-ring>
-  </a-entity>
-
-  <!-- ===== ОСВЕЩЕНИЕ ===== -->
-  <a-light type="ambient" color="#ffffff" intensity="0.6"></a-light>
-  <a-light type="directional" position="2 3 1" intensity="0.8"></a-light>
-
-</a-scene>
-
-<!-- ===== ЛОГИКА ИГРЫ ===== -->
-<script>
-  // Ждём загрузки сцены
-  document.addEventListener('DOMContentLoaded', function() {
-    let collected = 0;
-    const totalItems = 5;
-    const counter = document.querySelector('#counter');
-
-    // Находим все предметы с атрибутом data-collect="true"
-    const items = document.querySelectorAll('[data-collect="true"]');
-
-    items.forEach(item => {
-      // Добавляем курсор-прицел для каждого предмета (он появится при взгляде)
-      const cursor = document.createElement('a-entity');
-      cursor.setAttribute('geometry', 'primitive: ring; radius-inner: 0.1; radius-outer: 0.15');
-      cursor.setAttribute('material', 'color: #00ff00; opacity: 0');
-      cursor.setAttribute('scale', '1 1 1');
+    <!-- ===== КАМЕРА (ваши глаза) ===== -->
+    <a-camera id="camera" position="0 0.5 0" look-controls>
       
-      // Прицел показывается, когда смотришь на предмет
-      item.addEventListener('mouseenter', function() {
-        cursor.setAttribute('material', 'opacity: 1');
-        // Запускаем таймер сбора (1.5 секунды)
-        if (!item.dataset.collecting) {
-          item.dataset.collecting = 'true';
-          setTimeout(() => {
-            if (item.parentNode) { // Проверяем, не собран ли уже
-              collectItem(item);
-            }
-          }, 1500);
+      <!-- КРАСНАЯ ТОЧКА-ПРИЦЕЛ (всегда по центру) -->
+      <a-circle id="crosshair" position="0 0 -3" radius="0.04" color="#ff0000" 
+                material="side: double; shader: flat"></a-circle>
+      
+      <!-- ЛУЧ ДЛЯ ОПРЕДЕЛЕНИЯ КУДА СМОТРИТЕ -->
+      <a-entity id="raycaster" 
+                raycaster="objects: .block, .floor, .wall; far: 8; interval: 50"
+                cursor="fuse: true; fuseTimeout: 5000">
+      </a-entity>
+      
+      <!-- ЗЕЛЁНЫЙ КРУЖОК (появляется при наведении) -->
+      <a-circle id="fuse-ring" position="0 0 -3" radius="0.08" 
+                color="#00ff00" opacity="0.9" material="side: double; shader: flat"
+                visible="false">
+        <!-- Анимация заполнения круга -->
+        <a-circle id="fuse-fill" position="0 0 -0.01" radius="0.07" 
+                  color="#00ff88" opacity="0.6" material="side: double; shader: flat"
+                  visible="false"></a-circle>
+      </a-circle>
+      
+    </a-camera>
+
+    <!-- ===== ОПОРНАЯ ПЛОСКОСТЬ ДЛЯ СТРОИТЕЛЬСТВА ===== -->
+    <a-plane id="build-plane" class="floor" position="0 0.01 0" rotation="-90 0 0" 
+             width="10" height="10" color="#4a6a8a" opacity="0.3"
+             material="side: double; transparent: true">
+    </a-plane>
+
+  </a-scene>
+
+  <!-- ===== ЛОГИКА ИГРЫ ===== -->
+  <script>
+    const dropBtn = document.getElementById('drop-btn');
+    const info = document.getElementById('info');
+
+    // Переменные
+    let isBuilding = false;
+    let buildTarget = null;    // Место, куда ставим блок
+    let buildPosition = null;  // Координаты блока
+    let selectedBlock = null;  // Текущий блок для переноса
+    let fuseTimer = 0;
+    let isFusing = false;
+
+    // Получаем элементы из сцены
+    const scene = document.querySelector('a-scene');
+    const camera = document.querySelector('#camera');
+    const raycaster = document.querySelector('#raycaster');
+    const fuseRing = document.querySelector('#fuse-ring');
+    const fuseFill = document.querySelector('#fuse-fill');
+
+    // Счётчик блоков (для уникальных ID)
+    let blockCounter = 0;
+
+    // ===== ФУНКЦИЯ СОЗДАНИЯ БЛОКА =====
+    function createBlock(x, y, z, color = null) {
+      const colors = ['#ff4444', '#44ff44', '#4488ff', '#ffcc00', '#ff66aa', '#aa66ff', '#ff8844'];
+      const finalColor = color || colors[Math.floor(Math.random() * colors.length)];
+      
+      const block = document.createElement('a-box');
+      block.setAttribute('class', 'block');
+      block.setAttribute('position', `${x} ${y} ${z}`);
+      block.setAttribute('width', '0.5');
+      block.setAttribute('height', '0.5');
+      block.setAttribute('depth', '0.5');
+      block.setAttribute('color', finalColor);
+      block.setAttribute('material', 'side: double');
+      block.setAttribute('shadow', 'cast: true; receive: true');
+      
+      // ФИЗИКА: блоки могут падать и сталкиваться
+      block.setAttribute('dynamic-body', 'mass: 1; shape: box');
+      
+      // Уникальный ID
+      block.id = `block-${blockCounter++}`;
+      
+      return block;
+    }
+
+    // ===== ФУНКЦИЯ ПОСТАВИТЬ БЛОК =====
+    function placeBlock(position) {
+      if (!position) return;
+      
+      const block = createBlock(position.x, position.y, position.z);
+      scene.appendChild(block);
+      
+      // Показываем сообщение
+      info.textContent = `✅ Блок поставлен! (всего: ${blockCounter})`;
+      info.style.borderColor = '#44ff44';
+      setTimeout(() => {
+        info.style.borderColor = 'rgba(255,255,255,0.3)';
+        info.textContent = '🔴 Наведись на место на 5 сек → блок появится';
+      }, 1500);
+      
+      // Сбрасываем строительство
+      isBuilding = false;
+      buildTarget = null;
+      buildPosition = null;
+      fuseRing.setAttribute('visible', 'false');
+      fuseFill.setAttribute('visible', 'false');
+      isFusing = false;
+    }
+
+    // ===== ФУНКЦИЯ БРОСИТЬ БЛОК =====
+    function dropBlock() {
+      // Создаём блок прямо перед камерой (где красная точка)
+      const pos = camera.getAttribute('position');
+      const dir = new THREE.Vector3(0, 0, -1);
+      const cameraQuat = camera.object3D.quaternion;
+      dir.applyQuaternion(cameraQuat);
+      
+      // Бросаем в 2 метрах впереди и чуть выше
+      const dropPos = {
+        x: pos.x + dir.x * 2,
+        y: pos.y + dir.y * 1.5 + 0.3,
+        z: pos.z + dir.z * 2
+      };
+      
+      const block = createBlock(dropPos.x, dropPos.y, dropPos.z);
+      scene.appendChild(block);
+      
+      info.textContent = `💥 Блок брошен! (всего: ${blockCounter})`;
+      info.style.borderColor = '#ff4444';
+      setTimeout(() => {
+        info.style.borderColor = 'rgba(255,255,255,0.3)';
+        info.textContent = '🔴 Наведись на место на 5 сек → блок появится';
+      }, 1500);
+    }
+
+    // ===== ОБРАБОТЧИК НАВЕДЕНИЯ (FUSE) =====
+    raycaster.addEventListener('mouseenter', function(evt) {
+      const target = evt.detail.intersectedEl;
+      
+      // Проверяем, можно ли строить на этом объекте
+      if (target.classList && (target.classList.contains('floor') || target.classList.contains('block'))) {
+        isBuilding = true;
+        buildTarget = target;
+        
+        // Получаем точную позицию наведения
+        const point = evt.detail.intersection.point;
+        // Округляем до сетки 0.5
+        const gridX = Math.round(point.x / 0.5) * 0.5;
+        const gridY = Math.round(point.y / 0.5) * 0.5;
+        const gridZ = Math.round(point.z / 0.5) * 0.5;
+        
+        // Корректируем, чтобы блок ставился СВЕРХУ на поверхность
+        let finalY = gridY;
+        if (target.classList.contains('floor')) {
+          finalY = 0.25; // На пол
+        } else if (target.classList.contains('block')) {
+          // Ставим сверху на блок или сбоку
+          const blockPos = target.getAttribute('position');
+          const normal = evt.detail.intersection.face.normal;
+          // Определяем сторону
+          if (Math.abs(normal.y) > 0.5) {
+            finalY = blockPos.y + (normal.y > 0 ? 0.5 : -0.5);
+          } else if (Math.abs(normal.x) > 0.5) {
+            finalX = blockPos.x + (normal.x > 0 ? 0.5 : -0.5);
+          } else if (Math.abs(normal.z) > 0.5) {
+            finalZ = blockPos.z + (normal.z > 0 ? 0.5 : -0.5);
+          }
         }
-      });
-
-      item.addEventListener('mouseleave', function() {
-        cursor.setAttribute('material', 'opacity: 0');
-        item.dataset.collecting = 'false';
-      });
-
-      // Добавляем прицел к предмету
-      item.appendChild(cursor);
+        
+        buildPosition = {
+          x: gridX,
+          y: finalY || gridY,
+          z: gridZ
+        };
+        
+        // Показываем зелёный кружок и запускаем таймер
+        fuseRing.setAttribute('visible', 'true');
+        fuseFill.setAttribute('visible', 'true');
+        isFusing = true;
+        fuseTimer = 0;
+        
+        info.textContent = `⏳ Строим... 0%`;
+      }
     });
 
-    function collectItem(item) {
-      // Проверяем, что предмет ещё существует и не собран
-      if (!item.parentNode || item.dataset.collected === 'true') return;
-      
-      item.dataset.collected = 'true';
-      collected++;
-      
-      // Анимация исчезновения
-      item.setAttribute('animation', 'property: scale; to: 0 0 0; dur: 300');
-      
-      // Обновляем счётчик
-      counter.setAttribute('value', `Предметов: ${collected}/${totalItems}`);
-      
-      // Проверка победы
-      if (collected === totalItems) {
-        setTimeout(() => {
-          counter.setAttribute('value', '🎉 ПОБЕДА! Все предметы собраны!');
-          counter.setAttribute('color', '#ffdd00');
-        }, 500);
+    raycaster.addEventListener('mouseleave', function(evt) {
+      isBuilding = false;
+      isFusing = false;
+      fuseRing.setAttribute('visible', 'false');
+      fuseFill.setAttribute('visible', 'false');
+      info.textContent = '🔴 Наведись на место на 5 сек → блок появится';
+    });
+
+    // ===== ОБНОВЛЕНИЕ КАЖДЫЙ КАДР (для таймера) =====
+    let lastTime = Date.now();
+    function updateFuse() {
+      if (isFusing && isBuilding && buildPosition) {
+        const now = Date.now();
+        const delta = (now - lastTime) / 1000;
+        lastTime = now;
+        
+        fuseTimer += delta;
+        const progress = Math.min(fuseTimer / 5, 1);
+        
+        // Обновляем кружок (радиус заполнения)
+        const radius = 0.07 * progress;
+        fuseFill.setAttribute('radius', radius);
+        
+        // Обновляем информацию
+        const percent = Math.round(progress * 100);
+        info.textContent = `⏳ Строим... ${percent}%`;
+        
+        // Если таймер закончился — ставим блок
+        if (progress >= 1) {
+          placeBlock(buildPosition);
+        }
       }
+      requestAnimationFrame(updateFuse);
     }
-  });
-</script>
+    updateFuse();
+
+    // ===== КНОПКА "БРОСИТЬ БЛОК" =====
+    dropBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      dropBlock();
+    });
+
+    // ===== ПОДДЕРЖКА КАСАНИЙ ДЛЯ VR =====
+    // Если в VR-режиме кнопка не работает — дублируем нажатие по экрану
+    document.addEventListener('touchstart', function(e) {
+      // Если нажали не на кнопку — ничего не делаем
+    });
+
+    console.log('VR Строитель запущен! Стройте дома в очках VR Park!');
+  </script>
 
 </body>
-      </html>
+  </html>
