@@ -1,338 +1,138 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VR Interface</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            background: #0a0a0a;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            padding: 12px;
-        }
-
-        /* Стили для VR-очков (телефон в горизонтальной ориентации) */
-        .vr-headset {
-            max-width: 800px;
-            width: 100%;
-            aspect-ratio: 16 / 9;
-            background: #1a1a1a;
-            border-radius: 48px 48px 32px 32px;
-            padding: 20px 20px 30px;
-            box-shadow: 
-                0 20px 40px rgba(0,0,0,0.8),
-                0 0 0 2px #2a2a2a inset,
-                0 0 0 6px #111 inset;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            transition: all 0.2s;
-        }
-
-        /* Имитация линз и разделителя */
-        .lenses {
-            flex: 1;
-            display: flex;
-            gap: 12px;
-            background: #0d0d0d;
-            border-radius: 32px;
-            padding: 12px;
-            box-shadow: 0 0 0 2px #2e2e2e inset;
-            position: relative;
-        }
-
-        .lens {
-            flex: 1;
-            background: #141414;
-            border-radius: 28px;
-            padding: 16px 12px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 
-                0 0 0 2px #2a2a2a inset,
-                0 8px 20px rgba(0,0,0,0.7);
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* Эффект стекла линзы */
-        .lens::before {
-            content: '';
-            position: absolute;
-            top: -30%;
-            left: -30%;
-            width: 160%;
-            height: 160%;
-            background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.03) 0%, transparent 70%);
-            pointer-events: none;
-            border-radius: 50%;
-        }
-
-        .lens::after {
-            content: '';
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            width: 40%;
-            height: 40%;
-            background: radial-gradient(circle at 70% 80%, rgba(255,255,255,0.02) 0%, transparent 70%);
-            pointer-events: none;
-            border-radius: 50%;
-        }
-
-        /* Центральная перегородка (нос) */
-        .divider {
-            width: 18px;
-            background: #0a0a0a;
-            border-radius: 40px;
-            box-shadow: 0 0 0 2px #222 inset;
-            flex-shrink: 0;
-            position: relative;
-            z-index: 2;
-        }
-
-        /* Содержимое внутри линзы — как в описании: EXIT */
-        .exit-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: repeat(4, 1fr);
-            gap: 6px 10px;
-            width: 100%;
-            height: 100%;
-            justify-items: center;
-            align-items: center;
-            font-weight: 700;
-            color: #b0b0b0;
-            text-shadow: 0 0 8px rgba(0,180,255,0.3);
-            letter-spacing: 2px;
-            font-size: clamp(14px, 3vw, 26px);
-            background: radial-gradient(circle at 50% 40%, #1f1f1f 0%, #111 100%);
-            border-radius: 20px;
-            padding: 8px 4px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5) inset;
-        }
-
-        .exit-item {
-            background: rgba(30,30,30,0.5);
-            backdrop-filter: blur(2px);
-            padding: 4px 2px;
-            border-radius: 12px;
-            width: 100%;
-            text-align: center;
-            font-size: clamp(14px, 2.8vw, 24px);
-            color: #e0e0e0;
-            font-weight: 600;
-            text-transform: uppercase;
-            border: 1px solid rgba(255,255,255,0.04);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            transition: 0.1s;
-            letter-spacing: 2px;
-            font-family: 'Segoe UI', monospace;
-        }
-
-        .exit-item:active {
-            background: rgba(70,70,70,0.6);
-            transform: scale(0.96);
-        }
-
-        /* Специально для текста "EXIT" в разных стилях */
-        .exit-item:nth-child(odd) {
-            color: #d4d4d4;
-        }
-        .exit-item:nth-child(even) {
-            color: #c0c0c0;
-        }
-
-        /* Нижняя панель — кнопки управления (имитация) */
-        .control-bar {
-            margin-top: 14px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 12px;
-            gap: 20px;
-        }
-
-        .control-btn {
-            background: #222;
-            border: none;
-            padding: 8px 20px;
-            border-radius: 60px;
-            color: #aaa;
-            font-weight: 600;
-            font-size: 14px;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 0 #0a0a0a, 0 0 0 2px #2e2e2e inset;
-            transition: 0.05s linear;
-            text-transform: uppercase;
-            flex: 1;
-            text-align: center;
-            background: #1c1c1c;
-            cursor: default;
-        }
-
-        .control-btn:active {
-            transform: translateY(2px);
-            box-shadow: 0 2px 0 #0a0a0a, 0 0 0 2px #3a3a3a inset;
-        }
-
-        .control-btn.exit-main {
-            background: #2a1a1a;
-            color: #ff8a8a;
-            box-shadow: 0 4px 0 #1a0a0a, 0 0 0 2px #4a2a2a inset;
-            flex: 0.6;
-        }
-
-        /* Доп. индикация VR */
-        .vr-badge {
-            position: absolute;
-            top: 16px;
-            right: 28px;
-            color: #3a3a3a;
-            font-size: 10px;
-            letter-spacing: 3px;
-            background: #0d0d0d;
-            padding: 4px 14px;
-            border-radius: 40px;
-            border: 1px solid #2a2a2a;
-            text-transform: uppercase;
-            font-weight: 300;
-        }
-
-        .vr-badge-left {
-            position: absolute;
-            top: 16px;
-            left: 28px;
-            color: #3a3a3a;
-            font-size: 10px;
-            letter-spacing: 3px;
-            background: #0d0d0d;
-            padding: 4px 14px;
-            border-radius: 40px;
-            border: 1px solid #2a2a2a;
-            text-transform: uppercase;
-            font-weight: 300;
-        }
-
-        /* Для мобильных — адаптивность */
-        @media (max-width: 600px) {
-            .vr-headset {
-                border-radius: 32px 32px 24px 24px;
-                padding: 12px 12px 20px;
-                aspect-ratio: 16 / 9;
-            }
-            .lenses {
-                padding: 8px;
-                gap: 8px;
-            }
-            .divider {
-                width: 12px;
-            }
-            .exit-grid {
-                gap: 4px 6px;
-                padding: 4px 2px;
-            }
-            .exit-item {
-                padding: 2px 0;
-                font-size: clamp(10px, 2.5vw, 16px);
-            }
-            .control-btn {
-                font-size: 10px;
-                padding: 6px 10px;
-            }
-            .vr-badge, .vr-badge-left {
-                display: none;
-            }
-        }
-
-        /* Эффект "стерео" для очков — лёгкое затемнение по краям */
-        .vr-headset::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            background: radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(0,0,0,0.3) 100%);
-            pointer-events: none;
-            z-index: 5;
-        }
-
-        /* Стилизация скролла (на всякий) */
-        ::-webkit-scrollbar {
-            width: 0;
-        }
-
-        /* Дополнительно — чтобы внутри линз текст не вылезал */
-        .lens .exit-grid {
-            box-sizing: border-box;
-        }
-
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VR Комната - Собери предметы</title>
+  <!-- Подключаем библиотеку A-Frame для VR -->
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+  <!-- Подключаем компонент для управления взглядом -->
+  <script src="https://cdn.jsdelivr.net/npm/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
 </head>
 <body>
 
-<div class="vr-headset">
-    <!-- Бейджики для антуража -->
-    <div class="vr-badge-left">◉ VR</div>
-    <div class="vr-badge">🔲 3D</div>
+<a-scene>
+  <!-- ===== КОМНАТА ===== -->
+  <!-- Пол -->
+  <a-plane position="0 0 -4" rotation="-90 0 0" width="8" height="8" color="#3a3a3a"></a-plane>
+  
+  <!-- Стены -->
+  <a-box position="0 2 -4" width="8" height="4" depth="0.2" color="#5a5a5a"></a-box>  <!-- Задняя -->
+  <a-box position="-4 2 0" width="0.2" height="4" depth="8" color="#4a4a4a"></a-box>  <!-- Левая -->
+  <a-box position="4 2 0" width="0.2" height="4" depth="8" color="#4a4a4a"></a-box>   <!-- Правая -->
+  <a-box position="0 4 -4" width="8" height="0.2" depth="8" color="#6a6a6a"></a-box>   <!-- Потолок -->
 
-    <!-- Линзы -->
-    <div class="lenses">
-        <!-- Левая линза -->
-        <div class="lens">
-            <div class="exit-grid">
-                <div class="exit-item">EXIT</div>
-                <div class="exit-item">EXIT</div>
-                <div class="exit-item">EXIT</div>
-                <div class="exit-item">EXIT</div>
-                <div class="exit-item">EXIT</div>
-                <div class="exit-item">EXIT</div>
-                <div class="exit-item">EXIT</div>
-                <div class="exit-item">EX</div>
-            </div>
-        </div>
+  <!-- ===== ПРЕДМЕТЫ ДЛЯ СБОРА ===== -->
+  <!-- 1. Красный куб -->
+  <a-box position="-1.5 0.5 -3" width="0.5" height="0.5" depth="0.5" color="#ff4444"
+         data-collect="true">
+    <a-entity class="gaze-cursor"></a-entity>
+  </a-box>
 
-        <!-- Разделитель (переносица) -->
-        <div class="divider"></div>
+  <!-- 2. Синяя сфера -->
+  <a-sphere position="1.5 0.5 -3.5" radius="0.3" color="#4488ff"
+            data-collect="true">
+    <a-entity class="gaze-cursor"></a-entity>
+  </a-sphere>
 
-        <!-- Правая линза (зеркально) -->
-        <div class="lens">
-            <div class="exit-grid">
-                <div class="exit-item">EXIT</div>
-                <div class="exit-item">EXIT</div>
-                <div class="exit-item">EXIT</div>
-                <div class="exit-item">EXIT</div>
-                <div class="exit-item">EXIT</div>
-                <div class="exit-item">EXIT</div>
-                <div class="exit-item">EXIT</div>
-                <div class="exit-item">EX</div>
-            </div>
-        </div>
-    </div>
+  <!-- 3. Зелёный цилиндр -->
+  <a-cylinder position="-2 0.3 -4.5" radius="0.3" height="0.6" color="#44ff44"
+              data-collect="true">
+    <a-entity class="gaze-cursor"></a-entity>
+  </a-cylinder>
 
-    <!-- Нижняя панель с кнопками (имитация управления) -->
-    <div class="control-bar">
-        <div class="control-btn">◀︎ Назад</div>
-        <div class="control-btn exit-main">✕ ВЫХОД</div>
-        <div class="control-btn">Меню ▾</div>
-    </div>
+  <!-- 4. Жёлтый тор -->
+  <a-torus position="2 0.5 -4" radius="0.3" arc="0.3" color="#ffcc00"
+           data-collect="true">
+    <a-entity class="gaze-cursor"></a-entity>
+  </a-torus>
 
-    <!-- Небольшой индикатор (доп. стиль) -->
-    <div style="position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); color: #2a2a2a; font-size: 9px; letter-spacing: 6px; background: #0f0f0f; padding: 2px 20px; border-radius: 40px; border: 1px solid #222; text-transform: uppercase; pointer-events: none;">
-        VR · СТЕРЕО
-    </div>
-</div>
+  <!-- 5. Фиолетовая звезда (через Octahedron) -->
+  <a-octahedron position="0 0.5 -5" radius="0.3" color="#cc44ff"
+                data-collect="true">
+    <a-entity class="gaze-cursor"></a-entity>
+  </a-octahedron>
+
+  <!-- ===== СЧЁТЧИК ===== -->
+  <a-text id="counter" value="Предметов: 0/5" position="-1 2.5 -2.5" 
+          color="white" scale="1 1 1" align="center" width="3">
+  </a-text>
+
+  <!-- ===== ПРИЦЕЛ (крестик в центре) ===== -->
+  <a-entity position="0 0 -3">
+    <a-ring radius-inner="0.01" radius-outer="0.03" color="#00ff00"></a-ring>
+  </a-entity>
+
+  <!-- ===== ОСВЕЩЕНИЕ ===== -->
+  <a-light type="ambient" color="#ffffff" intensity="0.6"></a-light>
+  <a-light type="directional" position="2 3 1" intensity="0.8"></a-light>
+
+</a-scene>
+
+<!-- ===== ЛОГИКА ИГРЫ ===== -->
+<script>
+  // Ждём загрузки сцены
+  document.addEventListener('DOMContentLoaded', function() {
+    let collected = 0;
+    const totalItems = 5;
+    const counter = document.querySelector('#counter');
+
+    // Находим все предметы с атрибутом data-collect="true"
+    const items = document.querySelectorAll('[data-collect="true"]');
+
+    items.forEach(item => {
+      // Добавляем курсор-прицел для каждого предмета (он появится при взгляде)
+      const cursor = document.createElement('a-entity');
+      cursor.setAttribute('geometry', 'primitive: ring; radius-inner: 0.1; radius-outer: 0.15');
+      cursor.setAttribute('material', 'color: #00ff00; opacity: 0');
+      cursor.setAttribute('scale', '1 1 1');
+      
+      // Прицел показывается, когда смотришь на предмет
+      item.addEventListener('mouseenter', function() {
+        cursor.setAttribute('material', 'opacity: 1');
+        // Запускаем таймер сбора (1.5 секунды)
+        if (!item.dataset.collecting) {
+          item.dataset.collecting = 'true';
+          setTimeout(() => {
+            if (item.parentNode) { // Проверяем, не собран ли уже
+              collectItem(item);
+            }
+          }, 1500);
+        }
+      });
+
+      item.addEventListener('mouseleave', function() {
+        cursor.setAttribute('material', 'opacity: 0');
+        item.dataset.collecting = 'false';
+      });
+
+      // Добавляем прицел к предмету
+      item.appendChild(cursor);
+    });
+
+    function collectItem(item) {
+      // Проверяем, что предмет ещё существует и не собран
+      if (!item.parentNode || item.dataset.collected === 'true') return;
+      
+      item.dataset.collected = 'true';
+      collected++;
+      
+      // Анимация исчезновения
+      item.setAttribute('animation', 'property: scale; to: 0 0 0; dur: 300');
+      
+      // Обновляем счётчик
+      counter.setAttribute('value', `Предметов: ${collected}/${totalItems}`);
+      
+      // Проверка победы
+      if (collected === totalItems) {
+        setTimeout(() => {
+          counter.setAttribute('value', '🎉 ПОБЕДА! Все предметы собраны!');
+          counter.setAttribute('color', '#ffdd00');
+        }, 500);
+      }
+    }
+  });
+</script>
 
 </body>
-</html>
+      </html>
