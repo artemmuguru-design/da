@@ -10,7 +10,7 @@
   <style>
     body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; background: #000; }
     
-    /* ----- ЭТО НАША КРАСНАЯ ТОЧКА - ОНА НАВСЕГДА В ЦЕНТРЕ ЭКРАНА ----- */
+    /* КРАСНАЯ ТОЧКА В ЦЕНТРЕ */
     #crosshair {
       position: fixed;
       top: 50%;
@@ -21,17 +21,17 @@
       background: radial-gradient(circle, #ff0000 30%, rgba(255,0,0,0) 70%);
       border-radius: 50%;
       z-index: 1000;
-      pointer-events: none; /* Чтобы не мешать кликам по кнопке */
+      pointer-events: none;
       box-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
       border: 2px solid rgba(255, 50, 50, 0.9);
     }
 
-    /* КРУЖОК ОТСЧЕТА - появляется над точкой, когда наводимся на объект */
+    /* КРУЖОК ОТСЧЕТА */
     #fuse-circle {
       position: fixed;
       top: 50%;
       left: 50%;
-      transform: translate(-50%, -70%); /* Смещаем чуть выше красной точки */
+      transform: translate(-50%, -70%);
       width: 50px;
       height: 50px;
       border-radius: 50%;
@@ -56,7 +56,7 @@
       font-family: monospace;
     }
 
-    /* КНОПКА "БРОСИТЬ" */
+    /* КНОПКА БРОСИТЬ */
     #drop-btn {
       position: fixed;
       bottom: 40px;
@@ -105,7 +105,7 @@
 </head>
 <body>
 
-  <!-- КРАСНАЯ ТОЧКА - ВСЕГДА В ЦЕНТРЕ -->
+  <!-- КРАСНАЯ ТОЧКА -->
   <div id="crosshair"></div>
   
   <!-- КРУЖОК ОТСЧЕТА -->
@@ -119,27 +119,24 @@
   <!-- СЦЕНА A-FRAME -->
   <a-scene id="scene" physics="driver: local; gravity: -9.8">
     
-    <!-- СТЕНЫ С СЕТКОЙ (как на твоем фото) -->
-    <a-box id="wall-back" position="0 2 -6" width="12" height="4" depth="0.3" color="#d0d0d0"></a-box>
-    <a-box id="wall-left" position="-6 2 0" width="0.3" height="4" depth="12" color="#d0d0d0"></a-box>
-    <a-box id="wall-right" position="6 2 0" width="0.3" height="4" depth="12" color="#d0d0d0"></a-box>
-    <a-box id="wall-front" position="0 2 6" width="12" height="4" depth="0.3" color="#d0d0d0" opacity="0.15"></a-box>
+    <!-- СТЕНЫ -->
+    <a-box id="wall-back" position="0 2 -6" width="12" height="4" depth="0.3" color="#d0d0d0" static-body></a-box>
+    <a-box id="wall-left" position="-6 2 0" width="0.3" height="4" depth="12" color="#d0d0d0" static-body></a-box>
+    <a-box id="wall-right" position="6 2 0" width="0.3" height="4" depth="12" color="#d0d0d0" static-body></a-box>
+    <a-box id="wall-front" position="0 2 6" width="12" height="4" depth="0.3" color="#d0d0d0" opacity="0.15" static-body></a-box>
 
-    <!-- ПОЛ И ПОТОЛОК (ЖЕЛТО-ОРАНЖЕВЫЕ) -->
-    <a-plane id="floor" class="floor" position="0 0 0" rotation="-90 0 0" width="12" height="12" color="#ffaa33"></a-plane>
-    <a-plane id="ceiling" position="0 4 0" rotation="90 0 0" width="12" height="12" color="#ffaa33"></a-plane>
+    <!-- ПОЛ И ПОТОЛОК -->
+    <a-plane id="floor" class="floor" position="0 0 0" rotation="-90 0 0" width="12" height="12" color="#ffaa33" static-body></a-plane>
+    <a-plane id="ceiling" position="0 4 0" rotation="90 0 0" width="12" height="12" color="#ffaa33" static-body></a-plane>
 
     <!-- ОСВЕЩЕНИЕ -->
     <a-light type="ambient" intensity="0.7"></a-light>
     <a-light type="directional" position="5 10 5" intensity="0.9"></a-light>
     <a-light type="point" position="0 3 0" intensity="0.3" color="#ffaa55"></a-light>
 
-    <!-- КАМЕРА (ГЛАЗА) -->
-    <a-camera id="camera" position="0 0.5 0" look-controls>
-      <!-- ЛУЧ ДЛЯ ОПРЕДЕЛЕНИЯ, КУДА СМОТРИТ ИГРОК -->
-      <a-entity id="raycaster" 
-                raycaster="objects: .block, .floor, .wall; far: 8; interval: 100; direction: 0 0 -1">
-      </a-entity>
+    <!-- КАМЕРА С ПРАВИЛЬНЫМ RAYCASTER -->
+    <a-camera id="camera" position="0 0.5 0" look-controls
+              raycaster="objects: .block, .floor; far: 8; interval: 100">
     </a-camera>
 
     <!-- БЛОКИ ДЛЯ СБОРА -->
@@ -152,55 +149,45 @@
   </a-scene>
 
   <script>
-    // ============================================================
-    // ВСЯ ЛОГИКА ИГРЫ
-    // ============================================================
     (function() {
-      // ЭЛЕМЕНТЫ ИНТЕРФЕЙСА
+      // ЭЛЕМЕНТЫ
       const fuseCircle = document.getElementById('fuse-circle');
       const fuseText = document.getElementById('fuse-text');
       const info = document.getElementById('info');
       const dropBtn = document.getElementById('drop-btn');
-
-      // ЭЛЕМЕНТЫ СЦЕНЫ
       const scene = document.querySelector('#scene');
       const camera = document.querySelector('#camera');
-      const raycaster = document.querySelector('#raycaster');
 
       // СОСТОЯНИЕ
-      let carriedBlock = null;        // Блок, который мы несем
-      let isFusing = false;           // Идет ли отсчет
-      let fuseTimer = 0;              // Текущее время отсчета
-      let fuseTarget = null;          // Объект, на который смотрим
-      let fuseType = null;            // 'block' или 'floor'
-      let fuseDuration = 5;           // По умолчанию для блока
-      const TELEPORT_DURATION = 4;    // Для пола
+      let carriedBlock = null;
+      let isFusing = false;
+      let fuseTimer = 0;
+      let fuseTarget = null;
+      let fuseType = null;
+      let fuseDuration = 5;
+      const TELEPORT_DURATION = 4;
 
-      // ===== ФУНКЦИЯ ВЗЯТЬ БЛОК =====
+      // ===== ВЗЯТЬ БЛОК =====
       function pickUpBlock(block) {
         if (carriedBlock) return;
         carriedBlock = block;
-        // Отключаем физику
         block.removeAttribute('dynamic-body');
-        // Делаем блок ребенком камеры (он будет следовать за взглядом)
         camera.appendChild(block);
-        block.setAttribute('position', '0 0 -1.5');
+        block.setAttribute('position', '0 -0.3 -1.5');
         block.setAttribute('rotation', '0 0 0');
-        // Скрываем кружок отсчета
         fuseCircle.style.display = 'none';
         isFusing = false;
         info.textContent = '✋ Блок взят! Нажми "БРОСИТЬ"';
         info.style.borderColor = '#44ff44';
       }
 
-      // ===== ФУНКЦИЯ ТЕЛЕПОРТА =====
+      // ===== ТЕЛЕПОРТ =====
       function teleportTo(position) {
-        const newPos = {
+        camera.setAttribute('position', {
           x: position.x,
           y: 0.5,
           z: position.z
-        };
-        camera.setAttribute('position', newPos);
+        });
         info.textContent = '🌀 Телепорт!';
         info.style.borderColor = '#44aaff';
         setTimeout(() => {
@@ -209,10 +196,10 @@
         }, 1500);
       }
 
-      // ===== ФУНКЦИЯ БРОСИТЬ БЛОК =====
+      // ===== БРОСИТЬ БЛОК =====
       function dropBlock() {
         if (!carriedBlock) {
-          info.textContent = '⚠️ Сначала возьми блок (наведись на 5 сек)';
+          info.textContent = '⚠️ Сначала возьми блок';
           info.style.borderColor = '#ffaa00';
           setTimeout(() => {
             info.textContent = '🎯 Наведись на блок на 5 сек';
@@ -225,33 +212,33 @@
         camera.removeChild(block);
         scene.appendChild(block);
 
-        // Позиция и направление камеры
         const camPos = camera.getAttribute('position');
-        const direction = new THREE.Vector3(0, 0, -1);
-        const quat = camera.object3D.quaternion;
-        direction.applyQuaternion(quat);
-
-        // Кидаем вперед
+        const camRot = camera.getAttribute('rotation');
+        
+        // Вычисляем направление вперед
+        const radY = THREE.MathUtils.degToRad(camRot.y);
+        const dirX = -Math.sin(radY);
+        const dirZ = -Math.cos(radY);
+        
         const throwPos = {
-          x: camPos.x + direction.x * 2.5,
-          y: camPos.y + direction.y * 1.5 + 0.5,
-          z: camPos.z + direction.z * 2.5
+          x: camPos.x + dirX * 2.5,
+          y: camPos.y - 0.3,
+          z: camPos.z + dirZ * 2.5
         };
+        
         block.setAttribute('position', throwPos);
         block.setAttribute('dynamic-body', 'mass: 1; shape: box');
 
-        // Добавляем импульс для полета
-        block.addEventListener('body-loaded', function() {
-          const body = block.components['dynamic-body'].body;
+        // Ждем загрузки физики и применяем импульс
+        setTimeout(() => {
+          const body = block.components['dynamic-body']?.body;
           if (body) {
-            const impulse = new THREE.Vector3(
-              direction.x * 0.5,
-              0.4,
-              direction.z * 0.5
+            body.applyImpulse(
+              { x: dirX * 3, y: 2, z: dirZ * 3 },
+              body.position
             );
-            body.applyImpulse(impulse, body.position);
           }
-        }, { once: true });
+        }, 50);
 
         carriedBlock = null;
         info.textContent = '💥 Блок брошен!';
@@ -262,31 +249,39 @@
         }, 1500);
       }
 
-      // ===== ОБРАБОТЧИК НАВЕДЕНИЯ =====
-      // Используем события raycaster
-      raycaster.addEventListener('mouseenter', function(evt) {
-        const target = evt.detail.intersectedEl;
-        if (!target || carriedBlock) return;
+      // ===== ОБРАБОТЧИКИ RAYCASTER =====
+      camera.addEventListener('raycaster-intersection', function(evt) {
+        const intersections = evt.detail.intersections;
+        if (intersections.length === 0 || carriedBlock) {
+          if (isFusing) cancelFuse();
+          return;
+        }
 
-        // Проверяем, что это блок или пол
-        if (target.classList && target.classList.contains('block')) {
-          fuseTarget = target;
-          fuseType = 'block';
-          fuseDuration = 5;
-          startFuse();
-        } else if (target.classList && target.classList.contains('floor')) {
-          fuseTarget = target;
-          fuseType = 'floor';
-          fuseDuration = TELEPORT_DURATION;
-          startFuse();
+        const target = intersections[0].object.el;
+        if (!target) return;
+
+        // Проверяем тип объекта
+        if (target.classList.contains('block')) {
+          if (fuseTarget !== target || fuseType !== 'block') {
+            fuseTarget = target;
+            fuseType = 'block';
+            fuseDuration = 5;
+            startFuse();
+          }
+        } else if (target.classList.contains('floor')) {
+          if (fuseTarget !== target || fuseType !== 'floor') {
+            fuseTarget = target;
+            fuseType = 'floor';
+            fuseDuration = TELEPORT_DURATION;
+            startFuse();
+          }
+        } else {
+          if (isFusing) cancelFuse();
         }
       });
 
-      raycaster.addEventListener('mouseleave', function(evt) {
-        // Если ушли с объекта - сбрасываем отсчет
-        if (isFusing) {
-          cancelFuse();
-        }
+      camera.addEventListener('raycaster-intersection-cleared', function() {
+        if (isFusing) cancelFuse();
       });
 
       // ===== УПРАВЛЕНИЕ ОТСЧЕТОМ =====
@@ -296,7 +291,6 @@
         fuseTimer = fuseDuration;
         fuseCircle.style.display = 'flex';
         fuseText.textContent = Math.ceil(fuseTimer);
-        // Обновляем стиль кружка
         updateFuseCircle(1);
         info.textContent = `⏳ ${Math.ceil(fuseTimer)}...`;
       }
@@ -311,12 +305,11 @@
       }
 
       function updateFuseCircle(progress) {
-        // progress от 0 до 1
         const angle = progress * 360;
         fuseCircle.style.background = `conic-gradient(#00ff44 ${angle}deg, rgba(0, 255, 68, 0.2) ${angle}deg 360deg)`;
       }
 
-      // ===== ОБНОВЛЕНИЕ КАЖДЫЙ КАДР =====
+      // ===== ОБНОВЛЕНИЕ =====
       let lastTime = Date.now();
       function updateLoop() {
         const now = Date.now();
@@ -325,22 +318,18 @@
 
         if (isFusing && fuseTarget) {
           fuseTimer -= delta;
-
           if (fuseTimer <= 0) {
-            // Время вышло - выполняем действие
             if (fuseType === 'block') {
               pickUpBlock(fuseTarget);
             } else if (fuseType === 'floor') {
               const pos = fuseTarget.getAttribute('position');
               teleportTo(pos);
             }
-            // Сбрасываем отсчет
             isFusing = false;
             fuseCircle.style.display = 'none';
             fuseTarget = null;
             fuseType = null;
           } else {
-            // Обновляем кружок
             const progress = fuseTimer / fuseDuration;
             updateFuseCircle(1 - progress);
             fuseText.textContent = Math.ceil(fuseTimer);
@@ -358,11 +347,9 @@
         dropBlock();
       });
 
-      // ===== ДЛЯ ОТЛАДКИ: ВЫВОДИМ СООБЩЕНИЕ В КОНСОЛЬ =====
-      console.log('VR Игра запущена! Красная точка всегда в центре.');
-      console.log('Наведись на блок на 5 сек → взять. На пол на 4 сек → телепорт.');
+      console.log('✅ Игра готова! Смотри на блок 5 сек → берем, на пол 4 сек → телепорт');
     })();
   </script>
 
 </body>
-</html>
+  </html>
