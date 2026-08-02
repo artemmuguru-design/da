@@ -14,33 +14,36 @@
             border: none; border-radius: 25px; cursor: pointer; z-index: 999;
             font-family: Arial, sans-serif;
         }
-        #status {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            color: white; font-family: Arial, sans-serif; z-index: 999;
-            background: rgba(0,0,0,0.7); padding: 10px 20px; border-radius: 20px;
-        }
     </style>
 </head>
 <body>
     <div id="container"></div>
-    <div id="status">Загрузка...</div>
-    <button id="vr-btn" style="display:none;">🥽 Войти в VR</button>
+    <button id="vr-btn">🥽 Войти в VR</button>
     
-    <video id="video" autoplay playsinline muted loop></video>
+    <video id="video" autoplay playsinline muted></video>
 
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     
     <script>
         const video = document.getElementById('video');
         const container = document.getElementById('container');
-        const statusDiv = document.getElementById('status');
-        const vrBtn = document.getElementById('vr-btn');
         
-        // Создаем сцену сразу, но сферу добавим после загрузки видео
-        let scene, sphere;
-        
-        function initScene() {
-            scene = document.createElement('a-scene');
+        navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                facingMode: 'environment', 
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            } 
+        }).then(stream => {
+            video.srcObject = stream;
+            video.play();
+            createScene();
+        }).catch(err => {
+            alert('Ошибка камеры: ' + err.message);
+        });
+
+        function createScene() {
+            const scene = document.createElement('a-scene');
             scene.setAttribute('embedded', '');
             scene.setAttribute('vr-mode-ui', 'enabled: true');
             scene.style.width = '100%';
@@ -50,115 +53,32 @@
             scene.style.left = '0';
             container.appendChild(scene);
             
-            // Добавляем белый фон вместо черного на время загрузки
-            const sky = document.createElement('a-sky');
-            sky.setAttribute('color', '#333333');
-            sky.setAttribute('id', 'background-sky');
-            scene.appendChild(sky);
+            // Сфера с видео - радиус 10 метров, как вблизи экран
+            const sphere = document.createElement('a-sphere');
+            sphere.setAttribute('radius', '10');
+            sphere.setAttribute('segments-width', '64');
+            sphere.setAttribute('segments-height', '64');
+            sphere.setAttribute('material', 'shader: flat; src: #video; side: back');
+            sphere.setAttribute('scale', '-1 1 1');
+            scene.appendChild(sphere);
             
-            // Камера
+            // Камера с широким углом обзора
             const camera = document.createElement('a-entity');
-            camera.setAttribute('camera', 'fov: 80; near: 0.1; far: 1000');
+            camera.setAttribute('camera', 'fov: 100');
             camera.setAttribute('position', '0 0 0');
             camera.setAttribute('look-controls', '');
             scene.appendChild(camera);
             
-            // Свет
-            const light = document.createElement('a-entity');
-            light.setAttribute('light', 'type: ambient; color: #FFF; intensity: 1');
-            scene.appendChild(light);
-        }
-        
-        // Инициализируем сцену сразу
-        initScene();
-        
-        // Запускаем камеру
-        navigator.mediaDevices.getUserMedia({ 
-            video: { 
-                facingMode: 'environment', 
-                width: { ideal: 1920 },
-                height: { ideal: 1080 },
-                frameRate: { ideal: 30 }
-            } 
-        }).then(stream => {
-            video.srcObject = stream;
-            
-            video.onloadedmetadata = () => {
-                video.play();
-                statusDiv.textContent = 'Видео загружено';
-                
-                // Ждем первый кадр видео
-                video.addEventListener('playing', () => {
-                    statusDiv.textContent = 'Готово';
-                    statusDiv.style.display = 'none';
-                    vrBtn.style.display = 'block';
-                    
-                    // Удаляем старый фон
-                    const oldSky = document.getElementById('background-sky');
-                    if (oldSky) oldSky.remove();
-                    
-                    // Создаем сферу с видео
-                    createVideoSphere();
-                }, { once: true });
-            };
-        }).catch(err => {
-            statusDiv.textContent = 'Ошибка: ' + err.message;
-            console.error('Ошибка камеры:', err);
-        });
-
-        function createVideoSphere() {
-            // Создаем canvas для предварительного рендеринга
-            const canvas = document.createElement('canvas');
-            canvas.width = 512;
-            canvas.height = 256;
-            const ctx = canvas.getContext('2d');
-            
-            // Рисуем первый кадр видео на canvas
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            // Создаем текстуру из canvas
-            const texture = canvas.toDataURL('image/jpeg', 0.8);
-            
-            sphere = document.createElement('a-sphere');
-            sphere.setAttribute('radius', '500');
-            sphere.setAttribute('segments-width', '64');
-            sphere.setAttribute('segments-height', '64');
-            sphere.setAttribute('material', {
-                shader: 'flat',
-                src: '#video',
-                side: 'back',
-                transparent: false
-            });
-            sphere.setAttribute('scale', '-1 1 1');
-            sphere.setAttribute('id', 'video-sphere');
-            scene.appendChild(sphere);
-            
-            // Добавляем черный фон для периферии
+            // Черный фон
             const sky = document.createElement('a-sky');
-            sky.setAttribute('color', '#000000');
-            sky.setAttribute('radius', '1000');
+            sky.setAttribute('color', '#000');
             scene.appendChild(sky);
         }
 
         document.getElementById('vr-btn').onclick = function() {
-            const sceneElement = document.querySelector('a-scene');
-            if (sceneElement && sceneElement.renderer) {
-                sceneElement.enterVR();
-            }
+            const scene = document.querySelector('a-scene');
+            if (scene) scene.enterVR();
         };
-        
-        // Обработка ошибок видео
-        video.addEventListener('error', (e) => {
-            statusDiv.textContent = 'Ошибка видео';
-            console.error('Ошибка видео:', e);
-        });
-        
-        // Автоматически перезапускаем видео если оно остановилось
-        video.addEventListener('pause', () => {
-            if (video.srcObject) {
-                video.play().catch(() => {});
-            }
-        });
     </script>
 </body>
 </html>
