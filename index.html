@@ -1,440 +1,313 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>VR Камера • Стерео режим</title>
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      touch-action: none;
-      background-color: #000;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      height: 100dvh;
-    }
-
-    #ui-container {
-      position: absolute;
-      bottom: 30px;
-      left: 0;
-      right: 0;
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      z-index: 20;
-      pointer-events: none;
-      flex-wrap: wrap;
-      padding: 0 20px;
-    }
-
-    .action-btn {
-      pointer-events: auto;
-      background: rgba(0,0,0,0.75);
-      backdrop-filter: blur(12px);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.5);
-      border-radius: 50px;
-      padding: 12px 22px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.6);
-      transition: all 0.2s ease;
-      white-space: nowrap;
-    }
-
-    .action-btn:active {
-      background: rgba(255,255,255,0.3);
-      transform: scale(0.95);
-      border-color: white;
-    }
-
-    #vr-btn {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border: none;
-      font-size: 16px;
-      padding: 14px 28px;
-    }
-
-    #vr-btn.active-vr {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    }
-
-    #status-dot {
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #ff3b30;
-      box-shadow: 0 0 10px #ff3b30;
-      transition: all 0.3s;
-    }
-
-    #status-dot.active {
-      background: #32d74b;
-      box-shadow: 0 0 14px #32d74b;
-    }
-
-    #info-text {
-      position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: white;
-      background: rgba(0,0,0,0.6);
-      backdrop-filter: blur(8px);
-      padding: 8px 20px;
-      border-radius: 30px;
-      font-size: 13px;
-      z-index: 15;
-      pointer-events: none;
-      border: 1px solid rgba(255,255,255,0.2);
-      text-align: center;
-    }
-
-    @media (max-width: 600px) {
-      .action-btn {
-        padding: 10px 16px;
-        font-size: 13px;
-      }
-      #vr-btn {
-        padding: 12px 22px;
-        font-size: 14px;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>VR Камера</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #000;
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+        }
+        
+        /* Видео с камеры */
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: fixed;
+            top: 0;
+            left: 0;
+            transform: rotateY(0deg);
+            transition: transform 0.1s;
+        }
+        
+        /* VR-эффект (двойной экран) */
+        #vr-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        #vr-overlay.active {
+            display: flex;
+        }
+        
+        .vr-eye {
+            flex: 1;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .vr-eye video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        /* Разделительная линия для VR */
+        .vr-divider {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            width: 2px;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 20;
+            display: none;
+        }
+        
+        .vr-divider.active {
+            display: block;
+        }
+        
+        /* Кнопка */
+        #enter-vr-button {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 18px 40px;
+            font-size: 18px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0,123,255,0.4);
+            transition: all 0.3s;
+            touch-action: manipulation;
+            user-select: none;
+        }
+        
+        #enter-vr-button:active {
+            transform: translateX(-50%) scale(0.95);
+        }
+        
+        #enter-vr-button.vr-active {
+            background: #ff4444;
+            box-shadow: 0 4px 15px rgba(255,68,68,0.4);
+        }
+        
+        /* Информация */
+        #status {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 10px 20px;
+            border-radius: 10px;
+            z-index: 100;
+            font-size: 14px;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
-  <div id="info-text">📱 Нажми «Включить камеру», затем «VR»</div>
 
-  <div id="ui-container">
-    <button id="camera-btn" class="action-btn">
-      <span id="status-dot"></span>
-      <span id="camera-text">Включить камеру</span>
-    </button>
+    <!-- Статус -->
+    <div id="status">📷 Загрузка камеры...</div>
 
-    <button id="vr-btn" class="action-btn">
-      🥽 VR режим
-    </button>
-  </div>
+    <!-- Видео с камеры (обычный режим) -->
+    <video id="video" autoplay playsinline></video>
 
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
-        "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
-      }
-    }
-  </script>
+    <!-- VR-оверлей (два экрана) -->
+    <div id="vr-overlay">
+        <div class="vr-eye">
+            <video id="video-left" autoplay playsinline></video>
+        </div>
+        <div class="vr-eye">
+            <video id="video-right" autoplay playsinline></video>
+        </div>
+    </div>
+    
+    <div class="vr-divider" id="vr-divider"></div>
 
-  <script type="module">
-    import * as THREE from 'three';
-    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-    import { StereoEffect } from 'three/addons/effects/StereoEffect.js';
-    import { DeviceOrientationControls } from 'three/addons/controls/DeviceOrientationControls.js';
+    <!-- Кнопка -->
+    <button id="enter-vr-button">🎮 Войти в VR</button>
 
-    // --- DOM элементы ---
-    const cameraBtn = document.getElementById('camera-btn');
-    const statusDot = document.getElementById('status-dot');
-    const cameraText = document.getElementById('camera-text');
-    const vrBtn = document.getElementById('vr-btn');
-    const infoText = document.getElementById('info-text');
+    <script>
+        // ============================================
+        // 1. ВКЛЮЧАЕМ КАМЕРУ
+        // ============================================
+        const video = document.getElementById('video');
+        const videoLeft = document.getElementById('video-left');
+        const videoRight = document.getElementById('video-right');
+        const statusEl = document.getElementById('status');
+        const button = document.getElementById('enter-vr-button');
+        const vrOverlay = document.getElementById('vr-overlay');
+        const vrDivider = document.getElementById('vr-divider');
 
-    // --- Переменные ---
-    let scene, camera, renderer;
-    let stereoEffect;
-    let videoElement, videoTexture, videoMesh;
-    let sphereGeometry, sphereMaterial;
-    let animationFrameId;
-    let stream = null;
-    let orbitControls;
-    let deviceControls;
-    let isCameraActive = false;
-    let isVrMode = false;
-    let currentControls = null;
+        let isVRMode = false;
+        let stream = null;
 
-    // --- Инициализация ---
-    function initScene() {
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x050510);
+        async function startCamera() {
+            try {
+                // Запрашиваем камеру
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'environment', // Задняя камера
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    audio: false
+                });
 
-      camera = new THREE.PerspectiveCamera(
-        70,
-        window.innerWidth / window.innerHeight,
-        0.1,
-        1000
-      );
-      camera.position.set(0, 0, 0.1);
+                // Подключаем к видео
+                video.srcObject = stream;
+                videoLeft.srcObject = stream;
+                videoRight.srcObject = stream;
 
-      renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      document.body.appendChild(renderer.domElement);
+                await video.play();
+                await videoLeft.play();
+                await videoRight.play();
 
-      // Стерео эффект для VR (разделение экрана на два глаза)
-      stereoEffect = new StereoEffect(renderer);
-      stereoEffect.setSize(window.innerWidth, window.innerHeight);
-      stereoEffect.eyeSeparation = 0.064; // расстояние между глазами в метрах
-
-      // OrbitControls для обычного режима
-      orbitControls = new OrbitControls(camera, renderer.domElement);
-      orbitControls.target.set(0, 0, 0);
-      orbitControls.enableZoom = false;
-      orbitControls.enablePan = false;
-      orbitControls.rotateSpeed = 0.6;
-      orbitControls.maxPolarAngle = Math.PI;
-      orbitControls.minPolarAngle = 0;
-      orbitControls.update();
-      currentControls = orbitControls;
-
-      // DeviceOrientationControls для VR (гироскоп телефона)
-      deviceControls = new DeviceOrientationControls(camera);
-      deviceControls.enabled = false;
-
-      // Сфера для видео
-      sphereGeometry = new THREE.SphereGeometry(50, 64, 32);
-      sphereMaterial = new THREE.MeshBasicMaterial({
-        side: THREE.BackSide,
-        color: 0xffffff,
-      });
-      videoMesh = new THREE.Mesh(sphereGeometry, sphereMaterial);
-      scene.add(videoMesh);
-
-      addStars();
-
-      window.addEventListener('resize', onWindowResize, false);
-
-      // Запуск анимации
-      animate();
-    }
-
-    function addStars() {
-      const dotsGeo = new THREE.BufferGeometry();
-      const count = 500;
-      const positions = new Float32Array(count * 3);
-      for (let i = 0; i < count * 3; i += 3) {
-        const theta = Math.random() * Math.PI * 2;
-        const phi = Math.acos(Math.random() * 2 - 1);
-        const r = 48;
-        positions[i] = Math.sin(phi) * Math.cos(theta) * r;
-        positions[i + 1] = Math.sin(phi) * Math.sin(theta) * r;
-        positions[i + 2] = Math.cos(phi) * r;
-      }
-      dotsGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      const dotsMat = new THREE.PointsMaterial({
-        color: 0xaaccff,
-        size: 0.25,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      });
-      scene.add(new THREE.Points(dotsGeo, dotsMat));
-    }
-
-    // --- Камера телефона ---
-    async function toggleCamera() {
-      if (isCameraActive) {
-        disableCamera();
-      } else {
-        await enableCamera();
-      }
-    }
-
-    async function enableCamera() {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: 'environment' },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
-          audio: false,
-        });
-
-        videoElement = document.createElement('video');
-        videoElement.playsInline = true;
-        videoElement.autoplay = true;
-        videoElement.muted = true;
-        videoElement.srcObject = stream;
-
-        await new Promise((resolve) => {
-          videoElement.onloadedmetadata = () => {
-            videoElement.play().then(resolve).catch(() => {
-              videoElement.play().then(resolve);
-            });
-          };
-        });
-
-        videoTexture = new THREE.VideoTexture(videoElement);
-        videoTexture.minFilter = THREE.LinearFilter;
-        videoTexture.magFilter = THREE.LinearFilter;
-        videoTexture.format = THREE.RGBFormat;
-
-        sphereMaterial.map = videoTexture;
-        sphereMaterial.color.set(0xffffff);
-        sphereMaterial.needsUpdate = true;
-
-        isCameraActive = true;
-        statusDot.classList.add('active');
-        cameraText.textContent = 'Выключить камеру';
-        infoText.textContent = '📱 Камера работает • Нажми VR';
-        console.log('✅ Камера включена');
-      } catch (error) {
-        console.error('Ошибка камеры:', error);
-        alert('Нет доступа к камере. Используйте HTTPS.');
-        disableCamera();
-      }
-    }
-
-    function disableCamera() {
-      if (stream) {
-        stream.getTracks().forEach((t) => t.stop());
-        stream = null;
-      }
-      if (videoElement) {
-        videoElement.pause();
-        videoElement.srcObject = null;
-        videoElement = null;
-      }
-      if (sphereMaterial) {
-        sphereMaterial.map = null;
-        sphereMaterial.color.set(0xffffff);
-        sphereMaterial.needsUpdate = true;
-      }
-      if (videoTexture) {
-        videoTexture.dispose();
-        videoTexture = null;
-      }
-      isCameraActive = false;
-      statusDot.classList.remove('active');
-      cameraText.textContent = 'Включить камеру';
-      infoText.textContent = '📱 Нажми «Включить камеру», затем «VR»';
-      console.log('⏹️ Камера выключена');
-    }
-
-    // --- Переключение VR режима ---
-    function toggleVR() {
-      if (!isCameraActive) {
-        alert('Сначала включите камеру!');
-        return;
-      }
-
-      // Запрос на доступ к гироскопу (для iOS 13+)
-      if (
-        typeof DeviceOrientationEvent !== 'undefined' &&
-        typeof DeviceOrientationEvent.requestPermission === 'function'
-      ) {
-        DeviceOrientationEvent.requestPermission()
-          .then((state) => {
-            if (state === 'granted') {
-              enableVRMode();
-            } else {
-              alert('Для VR нужен доступ к гироскопу');
+                statusEl.textContent = '✅ Камера включена! Нажмите VR';
+                statusEl.style.color = '#4CAF50';
+                
+                return true;
+            } catch (error) {
+                console.error('Ошибка камеры:', error);
+                statusEl.textContent = '❌ Ошибка: ' + error.message;
+                statusEl.style.color = '#ff4444';
+                return false;
             }
-          })
-          .catch(() => {
-            // Пробуем без запроса (Android)
-            enableVRMode();
-          });
-      } else {
-        enableVRMode();
-      }
-    }
+        }
 
-    function enableVRMode() {
-      isVrMode = true;
+        // ============================================
+        // 2. УПРАВЛЕНИЕ ДВИЖЕНИЕМ (ГИРОСКОП)
+        // ============================================
+        let orientation = { alpha: 0, beta: 0, gamma: 0 };
 
-      // Отключаем OrbitControls
-      orbitControls.enabled = false;
-      // Включаем гироскоп
-      deviceControls.enabled = true;
-      deviceControls.connect();
-      currentControls = deviceControls;
+        function handleOrientation(event) {
+            orientation.alpha = event.alpha || 0;
+            orientation.beta = event.beta || 0;
+            orientation.gamma = event.gamma || 0;
 
-      // Меняем кнопку
-      vrBtn.classList.add('active-vr');
-      vrBtn.innerHTML = '🚪 Выйти из VR';
-      infoText.textContent = '🥽 VR активен • Двигайте телефоном';
+            if (isVRMode) {
+                // Поворачиваем видео в VR режиме (как экран телефона)
+                const rotateX = Math.min(Math.max(orientation.beta, -45), 45);
+                const rotateY = orientation.gamma;
+                
+                const vids = [videoLeft, videoRight];
+                vids.forEach(v => {
+                    v.style.transform = `rotateY(${rotateY}deg) rotateX(${rotateX}deg) scale(1.1)`;
+                    v.style.transition = 'transform 0.1s';
+                });
+            } else {
+                // Обычный режим - тоже поворачиваем для реализма
+                video.style.transform = `rotateY(${orientation.gamma}deg) rotateX(${orientation.beta}deg) scale(1.05)`;
+                video.style.transition = 'transform 0.1s';
+            }
+        }
 
-      console.log('🥽 VR режим включен');
-    }
+        // ============================================
+        // 3. ВКЛЮЧЕНИЕ VR РЕЖИМА
+        // ============================================
+        function toggleVR() {
+            isVRMode = !isVRMode;
 
-    function disableVRMode() {
-      isVrMode = false;
+            if (isVRMode) {
+                // Включаем VR
+                vrOverlay.classList.add('active');
+                vrDivider.classList.add('active');
+                video.style.display = 'none';
+                button.textContent = '❌ Выйти из VR';
+                button.classList.add('vr-active');
+                statusEl.textContent = '🔮 VR режим активен! Смотри по сторонам';
+                statusEl.style.color = '#ff9800';
+            } else {
+                // Выключаем VR
+                vrOverlay.classList.remove('active');
+                vrDivider.classList.remove('active');
+                video.style.display = 'block';
+                button.textContent = '🎮 Войти в VR';
+                button.classList.remove('vr-active');
+                statusEl.textContent = '📷 Камера включена';
+                statusEl.style.color = '#4CAF50';
+                
+                // Сбрасываем трансформацию
+                [videoLeft, videoRight].forEach(v => {
+                    v.style.transform = 'rotateY(0deg) rotateX(0deg) scale(1)';
+                });
+            }
+        }
 
-      // Отключаем гироскоп
-      deviceControls.enabled = false;
-      deviceControls.disconnect();
-      // Включаем OrbitControls
-      orbitControls.enabled = true;
-      camera.position.set(0, 0, 0.1);
-      orbitControls.target.set(0, 0, 0);
-      orbitControls.update();
-      currentControls = orbitControls;
+        // ============================================
+        // 4. МОБИЛЬНАЯ АДАПТАЦИЯ КНОПКИ
+        // ============================================
+        function createMobileVRButton() {
+            const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                button.style.padding = '20px 50px';
+                button.style.fontSize = '22px';
+                button.style.bottom = '60px';
+                button.style.width = '80%';
+                button.style.maxWidth = '320px';
+                
+                // Запрашиваем разрешение на гироскоп (для iOS 13+)
+                if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    DeviceOrientationEvent.requestPermission()
+                        .then(state => {
+                            if (state === 'granted') {
+                                window.addEventListener('deviceorientation', handleOrientation);
+                            }
+                        })
+                        .catch(console.error);
+                } else {
+                    window.addEventListener('deviceorientation', handleOrientation);
+                }
+            }
+        }
 
-      // Меняем кнопку
-      vrBtn.classList.remove('active-vr');
-      vrBtn.innerHTML = '🥽 VR режим';
-      infoText.textContent = '📱 Камера работает • Нажми VR';
+        // ============================================
+        // 5. ОБРАБОТЧИКИ СОБЫТИЙ
+        // ============================================
+        
+        // Кнопка входа в VR
+        button.addEventListener('click', toggleVR);
+        button.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            toggleVR();
+        });
 
-      console.log('🚪 VR режим выключен');
-    }
+        // Запуск камеры при загрузке
+        startCamera().then(success => {
+            if (success) {
+                createMobileVRButton();
+            }
+        });
 
-    // --- Анимация ---
-    function animate() {
-      animationFrameId = requestAnimationFrame(animate);
+        // Обработка ошибок камеры при сворачивании
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && stream) {
+                // Освобождаем камеру при сворачивании
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
 
-      // Обновление текстуры видео
-      if (
-        videoTexture &&
-        videoElement &&
-        videoElement.readyState >= videoElement.HAVE_CURRENT_DATA
-      ) {
-        videoTexture.needsUpdate = true;
-      }
+        console.log('✅ VR Камера готова!');
+        console.log('📱 Нажмите кнопку для входа в VR');
+    </script>
 
-      // Обновление текущих контролов
-      if (currentControls) {
-        currentControls.update();
-      }
-
-      // Рендеринг: стерео если VR, обычный если нет
-      if (isVrMode) {
-        stereoEffect.render(scene, camera);
-      } else {
-        renderer.render(scene, camera);
-      }
-    }
-
-    function onWindowResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      stereoEffect.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    // --- Обработчики кнопок ---
-    cameraBtn.addEventListener('click', toggleCamera);
-    vrBtn.addEventListener('click', toggleVR);
-
-    // Очистка
-    window.addEventListener('beforeunload', () => {
-      disableCamera();
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
-      if (deviceControls) deviceControls.disconnect();
-    });
-
-    // --- Запуск ---
-    initScene();
-    console.log('🚀 Приложение готово');
-  </script>
 </body>
 </html>
