@@ -2,36 +2,56 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VR Park</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>VR Park - Режим от первого лица</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background: #000;
+            touch-action: none;
+        }
         #counter {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            color: #00FF00; font-size: 72px; font-weight: bold;
-            text-shadow: 0 0 20px rgba(0,255,0,0.8); pointer-events: none; z-index: 20; display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00FF00;
+            font-size: 60px;
+            font-weight: bold;
+            text-shadow: 0 0 15px rgba(0,255,0,0.8);
+            z-index: 20;
+            pointer-events: none;
+            display: none;
         }
         #status {
-            position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
-            color: white; background: rgba(0,0,0,0.7); padding: 10px 20px;
-            border-radius: 20px; font-size: 16px; z-index: 10; pointer-events: none;
-        }
-        #vr-btn {
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            padding: 15px 30px; font-size: 18px; background: #4CAF50; color: white;
-            border: none; border-radius: 25px; cursor: pointer; z-index: 999;
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 8px 16px;
+            border-radius: 15px;
+            font-size: 14px;
+            z-index: 10;
+            pointer-events: none;
+            white-space: nowrap;
         }
     </style>
 </head>
 <body>
     <div id="counter">3</div>
-    <div id="status">⏱️ Готов к телепортации</div>
-    <button id="vr-btn">🥽 Войти в VR</button>
+    <div id="status">📱 Поворачивай телефон - смотри по сторонам!</div>
 
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     
-    <a-scene renderer="antialias: true" vr-mode-ui="enabled: true">
+    <a-scene renderer="antialias: true" 
+             vr-mode-ui="enabled: false"
+             device-orientation-permission-ui="enabled: true">
         
+        <!-- Освещение -->
         <a-entity light="type: ambient; color: #BBB; intensity: 0.5"></a-entity>
         <a-entity light="type: directional; color: #FFF; intensity: 0.8" position="1 3 2"></a-entity>
 
@@ -54,14 +74,18 @@
         <a-sphere position="5 0.8 -5" radius="0.8" color="#FF8C00"></a-sphere>
         <a-cylinder position="-5 0.75 5" radius="0.5" height="1.5" color="#8B4513"></a-cylinder>
 
-        <!-- Камера -->
-        <a-entity id="player" position="0 1.6 0" camera look-controls>
-            <!-- Красный прицел -->
-            <a-ring position="0 0 -1" radius-inner="0.005" radius-outer="0.008" color="#FF0000" material="shader: flat; emissive: #FF0000"></a-ring>
-            <a-ring position="0 0 -1" radius-inner="0.001" radius-outer="0.003" color="#FF3333" material="shader: flat; emissive: #FF0000"></a-ring>
+        <!-- Камера с отслеживанием движений телефона -->
+        <a-entity id="player" position="0 1.6 0" camera look-controls="magicWindowTrackingEnabled: true">
             
-            <!-- Курсор пола -->
-            <a-entity id="floor-cursor" cursor="rayOrigin: mouse; fuse: false" raycaster="objects: .floor; far: 30"></a-entity>
+            <!-- Красный прицел -->
+            <a-ring position="0 0 -1" radius-inner="0.005" radius-outer="0.008" 
+                    color="#FF0000" material="shader: flat; emissive: #FF0000"></a-ring>
+            <a-ring position="0 0 -1" radius-inner="0.001" radius-outer="0.003" 
+                    color="#FF3333" material="shader: flat; emissive: #FF0000"></a-ring>
+            
+            <!-- Курсор для отслеживания пола -->
+            <a-entity id="floor-cursor" cursor="rayOrigin: mouse; fuse: false" 
+                      raycaster="objects: .floor; far: 30"></a-entity>
         </a-entity>
     </a-scene>
 
@@ -73,16 +97,47 @@
         
         let looking = false, timer = null, count = 3, teleports = 0;
 
-        document.getElementById('vr-btn').onclick = function() {
-            document.querySelector('a-scene').enterVR();
-        };
+        // Запуск отслеживания движений телефона
+        window.addEventListener('load', function() {
+            // Запрашиваем разрешение на датчики движения для iOS
+            if (typeof DeviceOrientationEvent !== 'undefined') {
+                if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    // iOS 13+
+                    document.body.addEventListener('click', function() {
+                        DeviceOrientationEvent.requestPermission()
+                            .then(response => {
+                                if (response === 'granted') {
+                                    statusEl.textContent = '📱 Крути телефон - смотри вокруг!';
+                                }
+                            })
+                            .catch(console.error);
+                    }, { once: true });
+                } else {
+                    // Android и старые iOS
+                    statusEl.textContent = '📱 Крути телефон - смотри вокруг!';
+                }
+            }
+            
+            // Автоматический вход в магическое окно
+            setTimeout(function() {
+                const scene = document.querySelector('a-scene');
+                if (scene && scene.renderer) {
+                    // Включаем режим magic window
+                    scene.renderer.xr.enabled = false;
+                }
+            }, 1000);
+        });
 
         function teleport() {
             const p = player.getAttribute('position');
             const r = player.getAttribute('rotation');
             const pitch = THREE.MathUtils.degToRad(r.x);
             const yaw = THREE.MathUtils.degToRad(r.y);
-            const dir = new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch), -Math.sin(pitch), -Math.cos(yaw)*Math.cos(pitch));
+            const dir = new THREE.Vector3(
+                -Math.sin(yaw) * Math.cos(pitch), 
+                -Math.sin(pitch), 
+                -Math.cos(yaw) * Math.cos(pitch)
+            );
             
             if (dir.y >= 0) return;
             const t = -p.y / dir.y;
@@ -93,7 +148,9 @@
                 teleports++;
                 statusEl.textContent = `✨ Телепорт #${teleports}`;
                 counterEl.style.display = 'none';
-                setTimeout(() => { statusEl.textContent = '⏱️ Готов к телепортации'; }, 1500);
+                setTimeout(() => { 
+                    statusEl.textContent = '📱 Крути телефон - смотри вокруг!'; 
+                }, 1500);
             }
         }
 
@@ -102,22 +159,36 @@
             count = 3;
             counterEl.style.display = 'block';
             counterEl.textContent = count;
+            statusEl.textContent = '⏱️ Держи взгляд на полу...';
             timer = setInterval(() => {
                 count--;
-                if (count > 0) { counterEl.textContent = count; }
-                else { clearInterval(timer); timer = null; teleport(); looking = false; }
+                if (count > 0) { 
+                    counterEl.textContent = count; 
+                } else { 
+                    clearInterval(timer); 
+                    timer = null; 
+                    teleport(); 
+                    looking = false; 
+                }
             }, 1000);
         }
 
         function stop() {
-            if (timer) { clearInterval(timer); timer = null; }
+            if (timer) { 
+                clearInterval(timer); 
+                timer = null; 
+            }
             counterEl.style.display = 'none';
             looking = false;
+            statusEl.textContent = '📱 Крути телефон - смотри вокруг!';
         }
 
         floorCursor.addEventListener('raycaster-intersection', function(e) {
             if (!looking && e.detail.intersections.length > 0) {
-                if (e.detail.intersections[0].face.normal.y > 0.5) { looking = true; start(); }
+                if (e.detail.intersections[0].face.normal.y > 0.5) { 
+                    looking = true; 
+                    start(); 
+                }
             }
         });
 
@@ -126,4 +197,4 @@
         });
     </script>
 </body>
-    </html>
+            </html>
