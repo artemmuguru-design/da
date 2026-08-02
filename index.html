@@ -49,33 +49,21 @@
             scene.style.left = '0';
             container.appendChild(scene);
             
-            // Текстура из видео
-            const videoTexture = new THREE.VideoTexture(video);
-            
-            // Левая камера
-            const leftCamera = document.createElement('a-entity');
-            leftCamera.setAttribute('camera', '');
-            leftCamera.setAttribute('position', '-0.032 0 0');
-            
-            // Правый глаз (для VR эффекта)
-            const rightCamera = document.createElement('a-entity');
-            rightCamera.setAttribute('camera', '');
-            rightCamera.setAttribute('position', '0.032 0 0');
-            
-            // VR камера с двумя глазами
-            const vrCamera = document.createElement('a-entity');
-            vrCamera.appendChild(leftCamera);
-            vrCamera.appendChild(rightCamera);
-            scene.appendChild(vrCamera);
-            
-            // Сфера с видео для VR
+            // Сфера с видео для VR - нормальный угол обзора
             const sphere = document.createElement('a-sphere');
-            sphere.setAttribute('radius', '100');
+            sphere.setAttribute('radius', '10');
             sphere.setAttribute('segments-width', '64');
             sphere.setAttribute('segments-height', '64');
-            sphere.setAttribute('material', `shader: flat; src: #video; side: back`);
+            sphere.setAttribute('material', 'shader: flat; src: #video; side: back');
             sphere.setAttribute('scale', '-1 1 1');
             scene.appendChild(sphere);
+            
+            // Камера
+            const camera = document.createElement('a-entity');
+            camera.setAttribute('camera', '');
+            camera.setAttribute('position', '0 0 0');
+            camera.setAttribute('look-controls', '');
+            scene.appendChild(camera);
             
             // Свет
             const light = document.createElement('a-entity');
