@@ -27,14 +27,16 @@
         const video = document.getElementById('video');
         const container = document.getElementById('container');
         
-        // Включаем камеру
+        // Включаем камеру с широким углом
         navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'environment', width: 1280, height: 720 } 
+            video: { 
+                facingMode: 'environment', 
+                width: { ideal: 1920 }, 
+                height: { ideal: 1080 } 
+            } 
         }).then(stream => {
             video.srcObject = stream;
             video.play();
-            
-            // Создаем VR сцену с камерой
             createVRScene();
         });
 
@@ -42,6 +44,7 @@
             const scene = document.createElement('a-scene');
             scene.setAttribute('embedded', '');
             scene.setAttribute('vr-mode-ui', 'enabled: true');
+            scene.setAttribute('fov', '90');
             scene.style.width = '100%';
             scene.style.height = '100%';
             scene.style.position = 'absolute';
@@ -49,19 +52,26 @@
             scene.style.left = '0';
             container.appendChild(scene);
             
-            // Сфера с видео для VR - нормальный угол обзора
-            const sphere = document.createElement('a-sphere');
-            sphere.setAttribute('radius', '10');
-            sphere.setAttribute('segments-width', '64');
-            sphere.setAttribute('segments-height', '64');
-            sphere.setAttribute('material', 'shader: flat; src: #video; side: back');
-            sphere.setAttribute('scale', '-1 1 1');
-            scene.appendChild(sphere);
+            // Левая половина экрана
+            const leftPlane = document.createElement('a-plane');
+            leftPlane.setAttribute('position', '-0.5 0 0');
+            leftPlane.setAttribute('width', '1');
+            leftPlane.setAttribute('height', '1');
+            leftPlane.setAttribute('material', 'shader: flat; src: #video; side: double');
+            scene.appendChild(leftPlane);
             
-            // Камера
+            // Правая половина экрана
+            const rightPlane = document.createElement('a-plane');
+            rightPlane.setAttribute('position', '0.5 0 0');
+            rightPlane.setAttribute('width', '1');
+            rightPlane.setAttribute('height', '1');
+            rightPlane.setAttribute('material', 'shader: flat; src: #video; side: double');
+            scene.appendChild(rightPlane);
+            
+            // Камера дальше для широкого обзора
             const camera = document.createElement('a-entity');
-            camera.setAttribute('camera', '');
-            camera.setAttribute('position', '0 0 0');
+            camera.setAttribute('camera', 'fov: 90');
+            camera.setAttribute('position', '0 0 -0.5');
             camera.setAttribute('look-controls', '');
             scene.appendChild(camera);
             
