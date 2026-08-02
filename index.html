@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Камера</title>
+    <title>VR Камера</title>
     <style>
-        body { margin: 0; padding: 0; background: #000; }
-        video { width: 100%; height: 100%; object-fit: cover; position: fixed; top: 0; left: 0; }
+        body { margin: 0; padding: 0; background: #000; overflow: hidden; }
+        #container { width: 100%; height: 100vh; position: relative; }
+        video { display: none; }
         #vr-btn {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
             padding: 15px 30px; font-size: 18px; background: #4CAF50; color: white;
@@ -15,26 +16,79 @@
     </style>
 </head>
 <body>
-    <video id="video" autoplay playsinline></video>
+    <div id="container"></div>
     <button id="vr-btn">🥽 Войти в VR</button>
+    
+    <video id="video" autoplay playsinline></video>
 
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    
     <script>
         const video = document.getElementById('video');
+        const container = document.getElementById('container');
         
         // Включаем камеру
         navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'environment' } 
+            video: { facingMode: 'environment', width: 1280, height: 720 } 
         }).then(stream => {
             video.srcObject = stream;
+            video.play();
+            
+            // Создаем VR сцену с камерой
+            createVRScene();
         });
 
-        // VR кнопка
+        function createVRScene() {
+            const scene = document.createElement('a-scene');
+            scene.setAttribute('embedded', '');
+            scene.setAttribute('vr-mode-ui', 'enabled: true');
+            scene.style.width = '100%';
+            scene.style.height = '100%';
+            scene.style.position = 'absolute';
+            scene.style.top = '0';
+            scene.style.left = '0';
+            container.appendChild(scene);
+            
+            // Текстура из видео
+            const videoTexture = new THREE.VideoTexture(video);
+            
+            // Левая камера
+            const leftCamera = document.createElement('a-entity');
+            leftCamera.setAttribute('camera', '');
+            leftCamera.setAttribute('position', '-0.032 0 0');
+            
+            // Правый глаз (для VR эффекта)
+            const rightCamera = document.createElement('a-entity');
+            rightCamera.setAttribute('camera', '');
+            rightCamera.setAttribute('position', '0.032 0 0');
+            
+            // VR камера с двумя глазами
+            const vrCamera = document.createElement('a-entity');
+            vrCamera.appendChild(leftCamera);
+            vrCamera.appendChild(rightCamera);
+            scene.appendChild(vrCamera);
+            
+            // Сфера с видео для VR
+            const sphere = document.createElement('a-sphere');
+            sphere.setAttribute('radius', '100');
+            sphere.setAttribute('segments-width', '64');
+            sphere.setAttribute('segments-height', '64');
+            sphere.setAttribute('material', `shader: flat; src: #video; side: back`);
+            sphere.setAttribute('scale', '-1 1 1');
+            scene.appendChild(sphere);
+            
+            // Свет
+            const light = document.createElement('a-entity');
+            light.setAttribute('light', 'type: ambient; color: #FFF; intensity: 1');
+            scene.appendChild(light);
+        }
+
+        // Кнопка VR
         document.getElementById('vr-btn').onclick = function() {
-            if (video.requestFullscreen) {
-                video.requestFullscreen();
+            const scene = document.querySelector('a-scene');
+            if (scene) {
+                scene.enterVR();
             }
-            // Поворот экрана для VR очков
-            screen.orientation.lock('landscape').catch(() => {});
         };
     </script>
 </body>
