@@ -2,83 +2,443 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>VR Камера</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Саморазвивающийся ИИ на круге 🧠🚗</title>
     <style>
-        body { margin: 0; padding: 0; background: #000; overflow: hidden; }
-        #container { width: 100%; height: 100vh; position: relative; }
-        video { display: none; }
-        #vr-btn {
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            padding: 15px 30px; font-size: 18px; background: #4CAF50; color: white;
-            border: none; border-radius: 25px; cursor: pointer; z-index: 999;
-            font-family: Arial, sans-serif;
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(45deg, #0b1c2c, #132c3c);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+        }
+        .game-container {
+            background: #1e3a4d;
+            padding: 20px;
+            border-radius: 32px;
+            box-shadow: 0 20px 30px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+        canvas {
+            background: #1f4d3a;
+            border-radius: 24px;
+            box-shadow: inset 0 0 20px #0f2b1e, 0 10px 15px rgba(0,0,0,0.5);
+            display: block;
+            cursor: crosshair;
+        }
+        .panel {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            background: #0f2a33;
+            padding: 12px 20px;
+            border-radius: 50px;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+        }
+        .time-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            background: #2a5f6e;
+            border: none;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+            padding: 10px 22px;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: 0.15s;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 0 #0e2c33;
+            border: 1px solid #4c9bb0;
+        }
+        button:hover {
+            background: #3785a0;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #0e2c33;
+        }
+        button.active {
+            background: #e6b800;
+            color: #0b1c2c;
+            border-color: #ffd966;
+            box-shadow: 0 0 15px #ffd966;
+        }
+        .stats {
+            display: flex;
+            gap: 24px;
+            color: #d9eef7;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .stat-item {
+            background: #0d2029;
+            padding: 6px 16px;
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .brain-indicator {
+            color: #b3e6ff;
+            font-size: 1rem;
         }
     </style>
 </head>
 <body>
-    <div id="container"></div>
-    <button id="vr-btn">🥽 Войти в VR</button>
-    
-    <video id="video" autoplay playsinline muted></video>
+<div class="game-container">
+    <canvas id="gameCanvas" width="700" height="700"></canvas>
 
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    
-    <script>
-        const video = document.getElementById('video');
-        const container = document.getElementById('container');
-        
-        navigator.mediaDevices.getUserMedia({ 
-            video: { 
-                facingMode: 'environment', 
-                width: { ideal: 1920 },
-                height: { ideal: 1080 }
-            } 
-        }).then(stream => {
-            video.srcObject = stream;
-            video.play();
-            createScene();
-        }).catch(err => {
-            alert('Ошибка камеры: ' + err.message);
-        });
+    <div class="panel">
+        <div class="time-buttons">
+            <button id="speed1x" class="active">1x</button>
+            <button id="speed10x">10x</button>
+            <button id="speed1000x">1000x</button>
+        </div>
+        <div class="stats">
+            <div class="stat-item">🧠 <span id="brainStatus">Думает...</span></div>
+            <div class="stat-item">🏁 <span id="lapCounter">0</span> кругов</div>
+            <div class="stat-item">⏱️ <span id="generationCounter">0</span> эпох</div>
+        </div>
+    </div>
+</div>
 
-        function createScene() {
-            const scene = document.createElement('a-scene');
-            scene.setAttribute('embedded', '');
-            scene.setAttribute('vr-mode-ui', 'enabled: true');
-            scene.style.width = '100%';
-            scene.style.height = '100%';
-            scene.style.position = 'absolute';
-            scene.style.top = '0';
-            scene.style.left = '0';
-            container.appendChild(scene);
-            
-            // Сфера с видео - радиус 10 метров, как вблизи экран
-            const sphere = document.createElement('a-sphere');
-            sphere.setAttribute('radius', '10');
-            sphere.setAttribute('segments-width', '64');
-            sphere.setAttribute('segments-height', '64');
-            sphere.setAttribute('material', 'shader: flat; src: #video; side: back');
-            sphere.setAttribute('scale', '-1 1 1');
-            scene.appendChild(sphere);
-            
-            // Камера с широким углом обзора
-            const camera = document.createElement('a-entity');
-            camera.setAttribute('camera', 'fov: 100');
-            camera.setAttribute('position', '0 0 0');
-            camera.setAttribute('look-controls', '');
-            scene.appendChild(camera);
-            
-            // Черный фон
-            const sky = document.createElement('a-sky');
-            sky.setAttribute('color', '#000');
-            scene.appendChild(sky);
+<script>
+    (function() {
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // === КОНСТАНТЫ ДОРОГИ ===
+        const CX = canvas.width / 2;          // 350
+        const CY = canvas.height / 2;         // 350
+        const ROAD_INNER_RADIUS = 160;         // внутренний радиус дороги
+        const ROAD_OUTER_RADIUS = 260;         // внешний радиус дороги
+        const ROAD_CENTER_RADIUS = (ROAD_INNER_RADIUS + ROAD_OUTER_RADIUS) / 2; // 210
+        const CAR_SIZE = 16;                  // размер машины (квадрат)
+
+        // === ПАРАМЕТРЫ ИИ (нейросеть-примитив) ===
+        // ИИ "ничего не знает" — веса случайные, постепенно мутируют/обучаются
+        let brainWeights = {
+            w1: Math.random() * 2 - 1,
+            w2: Math.random() * 2 - 1,
+            w3: Math.random() * 2 - 1,
+            bias: Math.random() * 0.5,
+        };
+
+        // Состояние машины
+        let car = {
+            angle: 0,                // угол на круге (радианы)
+            speed: 0,                // текущая скорость (0..3)
+            x: CX + ROAD_CENTER_RADIUS,
+            y: CY,
+        };
+
+        // Параметры симуляции
+        let lapsCompleted = 0;
+        let currentLapProgress = 0;    // 0..1 (доля текущего круга, для отслеживания завершения)
+        let generation = 0;           // счётчик "перерождений" (эпох обучения)
+        let simulationTime = 0;       // внутреннее время (кадры)
+
+        // Управление скоростью симуляции
+        let speedMultiplier = 1;      // 1x, 10x, 1000x
+        let framesAccumulator = 0;    // для накопления кадров при быстром режиме
+
+        // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
+        function angleToXY(angle) {
+            // переводим угол в координаты центра дороги
+            const x = CX + ROAD_CENTER_RADIUS * Math.cos(angle);
+            const y = CY + ROAD_CENTER_RADIUS * Math.sin(angle);
+            return { x, y };
         }
 
-        document.getElementById('vr-btn').onclick = function() {
-            const scene = document.querySelector('a-scene');
-            if (scene) scene.enterVR();
-        };
-    </script>
+        function updateCarPositionFromAngle() {
+            const pos = angleToXY(car.angle);
+            car.x = pos.x;
+            car.y = pos.y;
+        }
+
+        // Получение "входных сигналов" для ИИ (сенсоры)
+        function getSensorData() {
+            // 3 сенсора: впереди, слева-впереди, справа-впереди (относительно направления машины)
+            const sensorAngles = [
+                car.angle,                          // прямо по курсу
+                car.angle - Math.PI / 6,            // чуть левее
+                car.angle + Math.PI / 6,            // чуть правее
+            ];
+
+            const sensorDistances = [];
+            for (let i = 0; i < sensorAngles.length; i++) {
+                const angle = sensorAngles[i];
+                // Вычисляем дистанцию до границы дороги (внутренний или внешний край) по направлению сенсора
+                const dirX = Math.cos(angle);
+                const dirY = Math.sin(angle);
+                // Точка центра машины
+                const carPos = angleToXY(car.angle);
+                // Вектор от центра круга к машине
+                const startX = carPos.x - CX;
+                const startY = carPos.y - CY;
+                const startDist = Math.hypot(startX, startY);
+
+                // Находим пересечение с внутренним и внешним радиусом (алгоритм пересечения луча с окружностью)
+                function rayCircleIntersection(rayOriginX, rayOriginY, rayDirX, rayDirY, centerX, centerY, radius) {
+                    const ox = rayOriginX - centerX;
+                    const oy = rayOriginY - centerY;
+                    const dx = rayDirX;
+                    const dy = rayDirY;
+                    const a = dx * dx + dy * dy;
+                    const b = 2 * (ox * dx + oy * dy);
+                    const c = ox * ox + oy * oy - radius * radius;
+                    const discriminant = b * b - 4 * a * c;
+                    if (discriminant < 0) return Infinity;
+                    const t1 = (-b + Math.sqrt(discriminant)) / (2 * a);
+                    const t2 = (-b - Math.sqrt(discriminant)) / (2 * a);
+                    let t = Math.min(t1, t2);
+                    if (t < 0) t = Math.max(t1, t2);
+                    return t;
+                }
+
+                // Расстояние до внутренней границы
+                const tInner = rayCircleIntersection(
+                    carPos.x, carPos.y, dirX, dirY,
+                    CX, CY, ROAD_INNER_RADIUS
+                );
+                // Расстояние до внешней границы
+                const tOuter = rayCircleIntersection(
+                    carPos.x, carPos.y, dirX, dirY,
+                    CX, CY, ROAD_OUTER_RADIUS
+                );
+
+                const minDist = Math.min(tInner, tOuter);
+                sensorDistances.push(minDist === Infinity ? 50 : minDist);
+            }
+            return sensorDistances;
+        }
+
+        // Функция ИИ: принимает сенсоры, возвращает действие (1 = повернуть налево, 2 = направо, 0 = прямо)
+        function decideAction(sensors) {
+            // Нормализуем сенсоры: чем больше дистанция, тем лучше (0..1)
+            const s1 = Math.min(sensors[0] / 40, 1); // прямо
+            const s2 = Math.min(sensors[1] / 40, 1); // слева
+            const s3 = Math.min(sensors[2] / 40, 1); // справа
+
+            // Простейшая нейросеть: взвешенная сумма
+            const sum = brainWeights.w1 * s1 + brainWeights.w2 * s2 + brainWeights.w3 * s3 + brainWeights.bias;
+
+            // Пороговая функция -> действие
+            if (sum < -0.2) return 1;   // поворот налево
+            else if (sum > 0.2) return 2; // поворот направо
+            else return 0;             // ехать прямо
+        }
+
+        // Мутация весов (случайное обучение)
+        function mutateBrain() {
+            const mutationRate = 0.25;
+            brainWeights.w1 += (Math.random() - 0.5) * mutationRate;
+            brainWeights.w2 += (Math.random() - 0.5) * mutationRate;
+            brainWeights.w3 += (Math.random() - 0.5) * mutationRate;
+            brainWeights.bias += (Math.random() - 0.5) * mutationRate * 0.5;
+            // Ограничиваем значения
+            brainWeights.w1 = Math.max(-2, Math.min(2, brainWeights.w1));
+            brainWeights.w2 = Math.max(-2, Math.min(2, brainWeights.w2));
+            brainWeights.w3 = Math.max(-2, Math.min(2, brainWeights.w3));
+            brainWeights.bias = Math.max(-1, Math.min(1, brainWeights.bias));
+        }
+
+        // Перезапуск машины в начальную точку (после круга или сброса)
+        function resetCar() {
+            car.angle = 0;
+            car.speed = 0;
+            currentLapProgress = 0;
+            updateCarPositionFromAngle();
+        }
+
+        // Основной шаг симуляции (один "такт" мышления ИИ)
+        function simulationStep() {
+            // Получаем сенсоры
+            const sensors = getSensorData();
+            const action = decideAction(sensors);
+
+            // Применяем действие
+            const turnRate = 0.045; // базовый поворот
+            if (action === 1) {
+                car.angle -= turnRate; // налево (уменьшение угла)
+            } else if (action === 2) {
+                car.angle += turnRate; // направо
+            }
+
+            // Изменение скорости (простое: машина пытается ехать, но если сенсоры плохие — тормозит)
+            const avgSensor = (sensors[0] + sensors[1] + sensors[2]) / 3;
+            if (avgSensor < 20) {
+                car.speed = Math.max(0, car.speed - 0.15); // тормозим
+            } else {
+                car.speed = Math.min(3.0, car.speed + 0.08); // разгоняемся
+            }
+
+            // Обновляем позицию на основе скорости и направления
+            car.angle += car.speed * 0.005; // маленькое смещение по кругу
+
+            // Нормализация угла
+            if (car.angle > Math.PI * 2) car.angle -= Math.PI * 2;
+            if (car.angle < 0) car.angle += Math.PI * 2;
+
+            updateCarPositionFromAngle();
+
+            // Проверка: проехала ли машина полный круг (пересечение угла 0)
+            // Так как угол нормализован 0..2pi, определяем завершение круга
+            if (car.angle < 0.1 && car.speed > 0.3 && currentLapProgress > 0.3) {
+                // Машина пересекла стартовую линию (угол 0)
+                lapsCompleted++;
+                currentLapProgress = 0;
+                // Мутация! ИИ слегка меняется после каждого круга (обучение)
+                mutateBrain();
+                // Обновляем генерацию (эпоха)
+                generation++;
+            } else {
+                // Обновляем прогресс текущего круга
+                currentLapProgress = Math.min(1, car.angle / (Math.PI * 2));
+            }
+
+            // Если машина вылетела за пределы дороги (радиус вне диапазона) — сброс, но без наказания (ИИ учится)
+            const distFromCenter = Math.hypot(car.x - CX, car.y - CY);
+            if (distFromCenter < ROAD_INNER_RADIUS - 5 || distFromCenter > ROAD_OUTER_RADIUS + 5) {
+                // Машина сошла с дороги — мягкий сброс, но поколение увеличивается, ИИ мутирует
+                resetCar();
+                generation++;
+                mutateBrain();
+            }
+        }
+
+        // === ОТРИСОВКА ===
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Дорога (кольцо)
+            ctx.beginPath();
+            ctx.arc(CX, CY, ROAD_OUTER_RADIUS, 0, Math.PI * 2);
+            ctx.arc(CX, CY, ROAD_INNER_RADIUS, 0, Math.PI * 2, true);
+            ctx.fillStyle = '#2e3b2e';
+            ctx.fill();
+            ctx.strokeStyle = '#b0b0b0';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // Разметка (пунктирные линии по центру дороги)
+            ctx.beginPath();
+            ctx.setLineDash([12, 16]);
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#f5e56b';
+            ctx.arc(CX, CY, ROAD_CENTER_RADIUS, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Стартовая линия
+            const startX = CX + ROAD_CENTER_RADIUS * Math.cos(0);
+            const startY = CY + ROAD_CENTER_RADIUS * Math.sin(0);
+            ctx.beginPath();
+            ctx.moveTo(startX - 14, startY - 12);
+            ctx.lineTo(startX + 14, startY + 12);
+            ctx.strokeStyle = '#ff4d4d';
+            ctx.lineWidth = 5;
+            ctx.stroke();
+
+            // 2. Машина (квадратик с направлением)
+            const carPos = angleToXY(car.angle);
+            const carAngleDeg = car.angle * 180 / Math.PI;
+            ctx.save();
+            ctx.translate(carPos.x, carPos.y);
+            ctx.rotate(car.angle + Math.PI / 2); // чтобы выглядело как машинка
+            ctx.fillStyle = '#ffaa33';
+            ctx.shadowColor = '#ffcc66';
+            ctx.shadowBlur = 10;
+            ctx.fillRect(-CAR_SIZE / 2, -CAR_SIZE / 2, CAR_SIZE, CAR_SIZE);
+            ctx.fillStyle = '#222';
+            ctx.fillRect(-3, -CAR_SIZE / 2 - 4, 6, 6); // "нос"
+            ctx.restore();
+
+            // 3. Сенсоры (визуализация)
+            const sensors = getSensorData();
+            const sensorColors = ['#00ffaa', '#ffaa00', '#ff00aa'];
+            for (let i = 0; i < 3; i++) {
+                const angleOffset = [0, -Math.PI / 6, Math.PI / 6][i];
+                const angle = car.angle + angleOffset;
+                const dist = Math.min(sensors[i], 40);
+                const endX = carPos.x + Math.cos(angle) * dist;
+                const endY = carPos.y + Math.sin(angle) * dist;
+                ctx.beginPath();
+                ctx.moveTo(carPos.x, carPos.y);
+                ctx.lineTo(endX, endY);
+                ctx.strokeStyle = sensorColors[i];
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            // Тень и центр
+            ctx.beginPath();
+            ctx.arc(CX, CY, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#e0e0e0';
+            ctx.fill();
+        }
+
+        // === ЦИКЛ ОБНОВЛЕНИЯ (с учётом множителя времени) ===
+        function gameLoop() {
+            // Накопление шагов в зависимости от множителя
+            if (speedMultiplier === 1) {
+                simulationStep();
+            } else if (speedMultiplier === 10) {
+                for (let i = 0; i < 10; i++) simulationStep();
+            } else if (speedMultiplier === 1000) {
+                for (let i = 0; i < 1000; i++) simulationStep();
+            }
+
+            // Обновляем статистику на экране
+            document.getElementById('lapCounter').innerText = lapsCompleted;
+            document.getElementById('generationCounter').innerText = generation;
+            const sensorCheck = getSensorData();
+            const avg = (sensorCheck[0] + sensorCheck[1] + sensorCheck[2]) / 3;
+            document.getElementById('brainStatus').innerText = avg > 30 ? 'Уверен' : (avg > 15 ? 'Осторожен' : 'Паника!');
+
+            // Рисуем кадр
+            draw();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // === ОБРАБОТЧИКИ КНОПОК ===
+        document.getElementById('speed1x').addEventListener('click', function() {
+            speedMultiplier = 1;
+            setActiveButton(this);
+        });
+        document.getElementById('speed10x').addEventListener('click', function() {
+            speedMultiplier = 10;
+            setActiveButton(this);
+        });
+        document.getElementById('speed1000x').addEventListener('click', function() {
+            speedMultiplier = 1000;
+            setActiveButton(this);
+        });
+
+        function setActiveButton(activeBtn) {
+            document.querySelectorAll('.time-buttons button').forEach(btn => btn.classList.remove('active'));
+            activeBtn.classList.add('active');
+        }
+
+        // Инициализация позиции машины
+        resetCar();
+
+        // Запуск цикла
+        gameLoop();
+    })();
+</script>
 </body>
 </html>
