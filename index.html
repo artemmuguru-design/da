@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Саморазвивающийся ИИ на круге 🧠🚗</title>
+    <title>ИИ в пиксельном мире 🌍🤖</title>
     <style>
         * {
             box-sizing: border-box;
@@ -12,97 +12,96 @@
         body {
             margin: 0;
             min-height: 100vh;
-            background: linear-gradient(45deg, #0b1c2c, #132c3c);
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
             display: flex;
             justify-content: center;
             align-items: center;
             font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
         }
         .game-container {
-            background: #1e3a4d;
+            background: #1e2a3a;
             padding: 20px;
-            border-radius: 32px;
-            box-shadow: 0 20px 30px rgba(0,0,0,0.6);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 16px;
         }
         canvas {
-            background: #1f4d3a;
-            border-radius: 24px;
-            box-shadow: inset 0 0 20px #0f2b1e, 0 10px 15px rgba(0,0,0,0.5);
+            background: #2d4a2d;
+            border-radius: 12px;
+            box-shadow: inset 0 0 20px #1a301a, 0 8px 16px rgba(0,0,0,0.5);
             display: block;
-            cursor: crosshair;
+            image-rendering: pixelated;
         }
         .panel {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
             align-items: center;
-            gap: 20px;
-            background: #0f2a33;
+            gap: 15px;
+            background: #1a2535;
             padding: 12px 20px;
-            border-radius: 50px;
-            box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+            border-radius: 30px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
         }
         .time-buttons {
             display: flex;
-            gap: 10px;
+            gap: 8px;
         }
         button {
-            background: #2a5f6e;
+            background: #3a5f7a;
             border: none;
             color: white;
             font-weight: bold;
-            font-size: 1.2rem;
-            padding: 10px 22px;
-            border-radius: 40px;
+            font-size: 0.9rem;
+            padding: 8px 16px;
+            border-radius: 20px;
             cursor: pointer;
             transition: 0.15s;
             letter-spacing: 1px;
-            box-shadow: 0 4px 0 #0e2c33;
-            border: 1px solid #4c9bb0;
+            box-shadow: 0 3px 0 #1e3a4d;
+            border: 1px solid #5a8faa;
         }
         button:hover {
-            background: #3785a0;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 0 #0e2c33;
+            background: #4a7f9a;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 0 #1e3a4d;
         }
         button.active {
             background: #e6b800;
-            color: #0b1c2c;
+            color: #1a1a2e;
             border-color: #ffd966;
-            box-shadow: 0 0 15px #ffd966;
+            box-shadow: 0 0 12px #ffd966;
         }
         .stats {
             display: flex;
-            gap: 24px;
+            gap: 15px;
             color: #d9eef7;
             font-weight: 600;
-            font-size: 1.1rem;
+            font-size: 0.9rem;
+            flex-wrap: wrap;
         }
         .stat-item {
-            background: #0d2029;
-            padding: 6px 16px;
-            border-radius: 28px;
+            background: #152030;
+            padding: 6px 12px;
+            border-radius: 20px;
             display: flex;
             align-items: center;
             gap: 6px;
         }
-        .brain-indicator {
-            color: #b3e6ff;
-            font-size: 1rem;
-        }
-        .best-score {
-            background: #1a3a2a;
-            border: 1px solid #4caf50;
+        .info-panel {
+            color: #aaccdd;
+            font-size: 0.8rem;
+            text-align: center;
+            max-width: 400px;
         }
     </style>
 </head>
 <body>
 <div class="game-container">
-    <canvas id="gameCanvas" width="700" height="700"></canvas>
+    <canvas id="gameCanvas" width="500" height="500"></canvas>
 
     <div class="panel">
         <div class="time-buttons">
@@ -112,11 +111,14 @@
             <button id="speed1000x">1000x</button>
         </div>
         <div class="stats">
-            <div class="stat-item">🧠 <span id="brainStatus">Думает...</span></div>
-            <div class="stat-item">🏁 <span id="lapCounter">0</span> кругов</div>
-            <div class="stat-item">⏱️ <span id="generationCounter">0</span> поколение</div>
-            <div class="stat-item best-score">🏆 <span id="bestScore">0</span> рекорд</div>
+            <div class="stat-item">🤖 <span id="aiStatus">Изучает мир...</span></div>
+            <div class="stat-item">📦 <span id="foodCounter">0</span> еды</div>
+            <div class="stat-item">👣 <span id="stepCounter">0</span> шагов</div>
+            <div class="stat-item">🔄 <span id="generationCounter">0</span> поколение</div>
         </div>
+    </div>
+    <div class="info-panel">
+        🎯 Цель: собирать еду 🍎 и не умереть с голоду. ИИ начинает с нулевыми знаниями!
     </div>
 </div>
 
@@ -124,50 +126,55 @@
     (function() {
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-
-        // === КОНСТАНТЫ ДОРОГИ ===
-        const CX = canvas.width / 2;
-        const CY = canvas.height / 2;
-        const ROAD_INNER_RADIUS = 160;
-        const ROAD_OUTER_RADIUS = 260;
-        const ROAD_CENTER_RADIUS = (ROAD_INNER_RADIUS + ROAD_OUTER_RADIUS) / 2;
-        const CAR_SIZE = 16;
-
-        // === ПОПУЛЯЦИЯ ИИ ===
-        const POPULATION_SIZE = 50; // количество машин в популяции
-        const MUTATION_RATE = 0.15; // сила мутаций
-        const MUTATION_PROBABILITY = 0.3; // вероятность мутации каждого гена
         
-        // Лучший ИИ за всю историю
-        let bestBrain = null;
-        let bestScore = 0;
-        let bestLaps = 0;
-
-        // Популяция машин
+        // === НАСТРОЙКИ МИРА ===
+        const GRID_SIZE = 20; // размер клетки в пикселях
+        const WORLD_WIDTH = 25; // ширина мира в клетках
+        const WORLD_HEIGHT = 25; // высота мира в клетках
+        const TILE_SIZE = 20;
+        
+        // === ТИПЫ ТАЙЛОВ ===
+        const TILE = {
+            EMPTY: 0,
+            WALL: 1,
+            FOOD: 2,
+        };
+        
+        // === МИР ===
+        let world = [];
+        let foodLocations = [];
+        
+        // === ПАРАМЕТРЫ ИИ ===
+        const POPULATION_SIZE = 30;
+        const MUTATION_RATE = 0.2;
+        const MUTATION_PROBABILITY = 0.3;
+        const MAX_STEPS = 200; // максимум шагов для одного ИИ
+        
+        // === ПОПУЛЯЦИЯ ===
         let population = [];
         let generation = 0;
-        let generationBestScore = 0;
-
-        // Управление скоростью симуляции
+        let bestScore = 0;
+        let bestBrain = null;
+        
+        // === УПРАВЛЕНИЕ ===
         let speedMultiplier = 1;
         let frameCount = 0;
-
-        // === КЛАСС МАШИНЫ ===
-        class Car {
+        
+        // === КЛАСС ИИ-ЧЕЛОВЕЧКА ===
+        class AIPerson {
             constructor(brain = null) {
-                this.angle = 0;
-                this.speed = 0;
-                this.x = CX + ROAD_CENTER_RADIUS;
-                this.y = CY;
+                // Начальная позиция (в центре)
+                this.x = Math.floor(WORLD_WIDTH / 2);
+                this.y = Math.floor(WORLD_HEIGHT / 2);
                 this.alive = true;
                 this.fitness = 0;
-                this.lapsCompleted = 0;
-                this.framesAlive = 0;
-                this.totalDistance = 0;
-                this.lastAngle = 0;
-                this.currentLapProgress = 0;
+                this.foodEaten = 0;
+                this.steps = 0;
+                this.energy = 100; // энергия (уменьшается с каждым шагом)
+                this.direction = 0; // 0-3: вверх, вправо, вниз, влево
+                this.vision = []; // что видит вокруг
+                this.memory = []; // память о прошлых действиях
                 
-                // Создаем или копируем мозг
                 if (brain) {
                     this.brain = {
                         weights: [...brain.weights],
@@ -177,143 +184,176 @@
                     this.brain = this.createRandomBrain();
                 }
             }
-
+            
             createRandomBrain() {
                 return {
                     weights: [
-                        Math.random() * 4 - 2,  // вес для сенсора "прямо"
-                        Math.random() * 4 - 2,  // вес для сенсора "влево"
-                        Math.random() * 4 - 2,  // вес для сенсора "вправо"
-                        Math.random() * 4 - 2,  // вес для скорости
-                        Math.random() * 4 - 2,  // вес для угла отклонения
+                        Math.random() * 4 - 2, // вес для еды впереди
+                        Math.random() * 4 - 2, // вес для еды слева
+                        Math.random() * 4 - 2, // вес для еды справа
+                        Math.random() * 4 - 2, // вес для стены впереди
+                        Math.random() * 4 - 2, // вес для стены слева
+                        Math.random() * 4 - 2, // вес для стены справа
+                        Math.random() * 4 - 2, // вес для энергии
+                        Math.random() * 4 - 2, // вес для случайности
                     ],
                     bias: Math.random() * 2 - 1
                 };
             }
-
-            // Получение сенсорных данных
-            getSensors() {
-                const sensorAngles = [
-                    car => car.angle,                    // прямо
-                    car => car.angle - Math.PI / 4,      // левее
-                    car => car.angle + Math.PI / 4,      // правее
-                    car => car.angle - Math.PI / 2,      // сильно влево
-                    car => car.angle + Math.PI / 2,      // сильно вправо
+            
+            // Получение информации о мире вокруг
+            getVision() {
+                const directions = [
+                    {dx: 0, dy: -1}, // вверх
+                    {dx: 1, dy: 0},  // вправо
+                    {dx: 0, dy: 1},  // вниз
+                    {dx: -1, dy: 0}, // влево
                 ];
                 
-                const distances = [];
-                for (let i = 0; i < sensorAngles.length; i++) {
-                    const angle = sensorAngles[i](this);
-                    const dirX = Math.cos(angle);
-                    const dirY = Math.sin(angle);
+                this.vision = [];
+                for (let i = 0; i < directions.length; i++) {
+                    const nx = this.x + directions[i].dx;
+                    const ny = this.y + directions[i].dy;
                     
-                    // Находим расстояние до границ дороги
-                    const distToInner = this.rayCircleIntersection(
-                        this.x, this.y, dirX, dirY, CX, CY, ROAD_INNER_RADIUS
-                    );
-                    const distToOuter = this.rayCircleIntersection(
-                        this.x, this.y, dirX, dirY, CX, CY, ROAD_OUTER_RADIUS
-                    );
-                    
-                    const minDist = Math.min(distToInner, distToOuter);
-                    distances.push(minDist === Infinity ? 100 : minDist);
+                    if (nx < 0 || nx >= WORLD_WIDTH || ny < 0 || ny >= WORLD_HEIGHT) {
+                        this.vision.push({type: 'wall', food: false});
+                    } else {
+                        this.vision.push({
+                            type: world[ny][nx] === TILE.WALL ? 'wall' : 'empty',
+                            food: world[ny][nx] === TILE.FOOD,
+                        });
+                    }
                 }
                 
-                return distances;
+                // Добавляем информацию о ближайшей еде (если есть)
+                const nearestFood = this.findNearestFood();
+                if (nearestFood) {
+                    this.vision.push({type: 'food_direction', x: nearestFood.x, y: nearestFood.y});
+                }
             }
-
-            rayCircleIntersection(ox, oy, dx, dy, cx, cy, r) {
-                const L = Math.hypot(cx - ox, cy - oy);
-                const tca = ((cx - ox) * dx + (cy - oy) * dy) / (dx * dx + dy * dy);
-                if (tca < 0) return Infinity;
-                const d2 = L * L - tca * tca;
-                if (d2 > r * r) return Infinity;
-                const thc = Math.sqrt(r * r - d2);
-                const t1 = tca - thc;
-                const t2 = tca + thc;
-                if (t1 > 0) return t1;
-                if (t2 > 0) return t2;
-                return Infinity;
+            
+            findNearestFood() {
+                let minDist = Infinity;
+                let nearest = null;
+                
+                for (let food of foodLocations) {
+                    const dist = Math.abs(food.x - this.x) + Math.abs(food.y - this.y);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        nearest = food;
+                    }
+                }
+                
+                return nearest;
             }
-
-            // Принятие решения на основе сенсоров
-            decide(sensors) {
-                const normalizedSensors = sensors.map(s => Math.min(s / 50, 1));
-                const speedFactor = this.speed / 3;
-                const angleDeviation = Math.abs(this.angle % (Math.PI * 2));
+            
+            // Принятие решения
+            decide() {
+                this.getVision();
                 
-                const inputs = [
-                    normalizedSensors[0],  // прямо
-                    normalizedSensors[1],  // влево
-                    normalizedSensors[2],  // вправо
-                    speedFactor,           // текущая скорость
-                    angleDeviation,        // угол
-                ];
+                // Подготовка входных данных для нейросети
+                const inputs = [];
                 
-                // Нейросеть: взвешенная сумма входов
+                // Информация о клетках вокруг (в порядке: вверх, вправо, вниз, влево)
+                for (let i = 0; i < 4; i++) {
+                    inputs.push(this.vision[i].food ? 1 : 0);
+                    inputs.push(this.vision[i].type === 'wall' ? 1 : 0);
+                }
+                
+                // Энергия
+                inputs.push(this.energy / 100);
+                
+                // Направление к ближайшей еде (если есть)
+                const foodDir = this.vision.find(v => v.type === 'food_direction');
+                if (foodDir) {
+                    const dx = foodDir.x - this.x;
+                    const dy = foodDir.y - this.y;
+                    inputs.push(Math.tanh(dx));
+                    inputs.push(Math.tanh(dy));
+                } else {
+                    inputs.push(0);
+                    inputs.push(0);
+                }
+                
+                // Случайный вход для разнообразия
+                inputs.push(Math.random() * 2 - 1);
+                
+                // Нейросеть принимает решение
                 let sum = this.brain.bias;
                 for (let i = 0; i < inputs.length; i++) {
                     sum += this.brain.weights[i] * inputs[i];
                 }
                 
-                // Функция активации (tanh для плавности)
                 const activation = Math.tanh(sum);
                 
-                // Преобразуем в действие
-                if (activation < -0.3) return 'left';
-                if (activation > 0.3) return 'right';
-                return 'straight';
+                // Преобразуем в направление (0-3)
+                if (activation < -0.5) return 0; // вверх
+                if (activation < 0) return 1;    // вправо
+                if (activation < 0.5) return 2;  // вниз
+                return 3;                        // влево
             }
-
-            // Обновление состояния машины
-            update() {
+            
+            // Шаг ИИ
+            step() {
                 if (!this.alive) return;
                 
-                this.framesAlive++;
-                const sensors = this.getSensors();
-                const action = this.decide(sensors);
+                this.steps++;
+                this.energy -= 0.5; // тратим энергию
                 
-                // Применяем действие
-                const turnRate = 0.06;
-                if (action === 'left') {
-                    this.angle -= turnRate;
-                } else if (action === 'right') {
-                    this.angle += turnRate;
-                }
-                
-                // Управление скоростью
-                const minSensorDist = Math.min(...sensors);
-                if (minSensorDist < 15) {
-                    this.speed = Math.max(0.5, this.speed - 0.1);
-                } else {
-                    this.speed = Math.min(3.0, this.speed + 0.15);
-                }
-                
-                // Обновляем позицию
-                this.angle += this.speed * 0.004;
-                if (this.angle > Math.PI * 2) {
-                    this.angle -= Math.PI * 2;
-                    this.lapsCompleted++;
-                }
-                if (this.angle < 0) this.angle += Math.PI * 2;
-                
-                // Вычисляем координаты
-                this.x = CX + ROAD_CENTER_RADIUS * Math.cos(this.angle);
-                this.y = CY + ROAD_CENTER_RADIUS * Math.sin(this.angle);
-                
-                // Вычисляем фитнес
-                this.totalDistance += this.speed;
-                this.fitness = this.totalDistance + this.lapsCompleted * 1000;
-                
-                // Проверка на вылет с дороги
-                const distFromCenter = Math.hypot(this.x - CX, this.y - CY);
-                if (distFromCenter < ROAD_INNER_RADIUS - 10 || 
-                    distFromCenter > ROAD_OUTER_RADIUS + 10) {
+                if (this.energy <= 0) {
                     this.alive = false;
+                    return;
                 }
+                
+                if (this.steps > MAX_STEPS) {
+                    this.alive = false;
+                    return;
+                }
+                
+                const direction = this.decide();
+                this.direction = direction;
+                
+                const directions = [
+                    {dx: 0, dy: -1}, // вверх
+                    {dx: 1, dy: 0},  // вправо
+                    {dx: 0, dy: 1},  // вниз
+                    {dx: -1, dy: 0}, // влево
+                ];
+                
+                const newX = this.x + directions[direction].dx;
+                const newY = this.y + directions[direction].dy;
+                
+                // Проверка границ и стен
+                if (newX >= 0 && newX < WORLD_WIDTH && 
+                    newY >= 0 && newY < WORLD_HEIGHT &&
+                    world[newY][newX] !== TILE.WALL) {
+                    
+                    this.x = newX;
+                    this.y = newY;
+                    
+                    // Проверка на еду
+                    if (world[newY][newX] === TILE.FOOD) {
+                        this.eatFood(newX, newY);
+                    }
+                }
+                
+                // Обновляем фитнес
+                this.fitness = this.foodEaten * 100 + this.steps;
             }
-
-            // Мутация мозга
+            
+            eatFood(x, y) {
+                this.foodEaten++;
+                this.energy = Math.min(100, this.energy + 30);
+                world[y][x] = TILE.EMPTY;
+                
+                // Удаляем еду из списка
+                foodLocations = foodLocations.filter(f => !(f.x === x && f.y === y));
+                
+                // Создаем новую еду в случайном месте
+                spawnFood();
+            }
+            
+            // Мутация
             mutate() {
                 for (let i = 0; i < this.brain.weights.length; i++) {
                     if (Math.random() < MUTATION_PROBABILITY) {
@@ -327,70 +367,120 @@
                 }
             }
         }
-
+        
+        // === ФУНКЦИИ МИРА ===
+        function createWorld() {
+            world = [];
+            foodLocations = [];
+            
+            // Создаем пустой мир
+            for (let y = 0; y < WORLD_HEIGHT; y++) {
+                world[y] = [];
+                for (let x = 0; x < WORLD_WIDTH; x++) {
+                    world[y][x] = TILE.EMPTY;
+                }
+            }
+            
+            // Добавляем стены по краям
+            for (let x = 0; x < WORLD_WIDTH; x++) {
+                world[0][x] = TILE.WALL;
+                world[WORLD_HEIGHT - 1][x] = TILE.WALL;
+            }
+            for (let y = 0; y < WORLD_HEIGHT; y++) {
+                world[y][0] = TILE.WALL;
+                world[y][WORLD_WIDTH - 1] = TILE.WALL;
+            }
+            
+            // Добавляем несколько препятствий
+            for (let i = 0; i < 8; i++) {
+                const wx = Math.floor(Math.random() * (WORLD_WIDTH - 4)) + 2;
+                const wy = Math.floor(Math.random() * (WORLD_HEIGHT - 4)) + 2;
+                world[wy][wx] = TILE.WALL;
+            }
+            
+            // Создаем начальную еду
+            for (let i = 0; i < 15; i++) {
+                spawnFood();
+            }
+        }
+        
+        function spawnFood() {
+            let attempts = 0;
+            while (attempts < 100) {
+                const x = Math.floor(Math.random() * (WORLD_WIDTH - 2)) + 1;
+                const y = Math.floor(Math.random() * (WORLD_HEIGHT - 2)) + 1;
+                
+                if (world[y][x] === TILE.EMPTY) {
+                    world[y][x] = TILE.FOOD;
+                    foodLocations.push({x, y});
+                    return;
+                }
+                attempts++;
+            }
+        }
+        
         // === ГЕНЕТИЧЕСКИЙ АЛГОРИТМ ===
         function createInitialPopulation() {
             population = [];
             for (let i = 0; i < POPULATION_SIZE; i++) {
-                population.push(new Car());
+                population.push(new AIPerson());
             }
         }
-
+        
         function evolvePopulation() {
-            // Сортируем по фитнесу (от лучшего к худшему)
+            // Сортируем по фитнесу
             population.sort((a, b) => b.fitness - a.fitness);
             
             // Обновляем лучший результат
             if (population[0].fitness > bestScore) {
                 bestScore = population[0].fitness;
-                bestLaps = population[0].lapsCompleted;
                 bestBrain = {
                     weights: [...population[0].brain.weights],
                     bias: population[0].brain.bias
                 };
             }
             
-            generationBestScore = population[0].fitness;
-            
             // Создаем новое поколение
             const newPopulation = [];
             
-            // Элитизм: сохраняем лучших 20%
+            // Элитизм: сохраняем 20% лучших
             const eliteCount = Math.floor(POPULATION_SIZE * 0.2);
             for (let i = 0; i < eliteCount; i++) {
-                newPopulation.push(new Car(population[i].brain));
+                newPopulation.push(new AIPerson(population[i].brain));
             }
             
-            // Создаем потомков через скрещивание и мутации
+            // Создаем потомков
             while (newPopulation.length < POPULATION_SIZE) {
-                const parent1 = this.selectParent(population);
-                const parent2 = this.selectParent(population);
-                const child = this.crossover(parent1, parent2);
+                const parent1 = selectParent();
+                const parent2 = selectParent();
+                const child = crossover(parent1, parent2);
                 child.mutate();
                 newPopulation.push(child);
             }
             
             population = newPopulation;
             generation++;
+            
+            // Пересоздаем мир для нового поколения
+            createWorld();
         }
-
-        function selectParent(sortedPopulation) {
+        
+        function selectParent() {
             // Турнирная селекция
             const tournamentSize = 5;
             let best = null;
             for (let i = 0; i < tournamentSize; i++) {
-                const randomIndex = Math.floor(Math.random() * sortedPopulation.length);
-                const candidate = sortedPopulation[randomIndex];
+                const randomIndex = Math.floor(Math.random() * population.length);
+                const candidate = population[randomIndex];
                 if (!best || candidate.fitness > best.fitness) {
                     best = candidate;
                 }
             }
             return best;
         }
-
+        
         function crossover(parent1, parent2) {
-            const child = new Car();
-            // Смешиваем гены родителей
+            const child = new AIPerson();
             for (let i = 0; i < child.brain.weights.length; i++) {
                 if (Math.random() < 0.5) {
                     child.brain.weights[i] = parent1.brain.weights[i];
@@ -401,141 +491,122 @@
             child.brain.bias = Math.random() < 0.5 ? parent1.brain.bias : parent2.brain.bias;
             return child;
         }
-
+        
         // === ОТРИСОВКА ===
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Дорога
-            ctx.beginPath();
-            ctx.arc(CX, CY, ROAD_OUTER_RADIUS, 0, Math.PI * 2);
-            ctx.arc(CX, CY, ROAD_INNER_RADIUS, 0, Math.PI * 2, true);
-            ctx.fillStyle = '#2e3b2e';
-            ctx.fill();
-            ctx.strokeStyle = '#b0b0b0';
-            ctx.lineWidth = 4;
-            ctx.stroke();
-            
-            // Разметка
-            ctx.beginPath();
-            ctx.setLineDash([12, 16]);
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = '#f5e56b';
-            ctx.arc(CX, CY, ROAD_CENTER_RADIUS, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.setLineDash([]);
-            
-            // Стартовая линия
-            const startX = CX + ROAD_CENTER_RADIUS;
-            const startY = CY;
-            ctx.beginPath();
-            ctx.moveTo(startX - 14, startY - 12);
-            ctx.lineTo(startX + 14, startY + 12);
-            ctx.strokeStyle = '#ff4d4d';
-            ctx.lineWidth = 5;
-            ctx.stroke();
-            
-            // Машины
-            population.forEach(car => {
-                if (!car.alive) return;
-                
-                ctx.save();
-                ctx.translate(car.x, car.y);
-                ctx.rotate(car.angle + Math.PI / 2);
-                
-                // Цвет зависит от фитнеса
-                const fitnessRatio = car.fitness / (bestScore || 1);
-                const green = Math.floor(255 * Math.min(fitnessRatio, 1));
-                const red = Math.floor(255 * (1 - Math.min(fitnessRatio, 1)));
-                ctx.fillStyle = `rgb(${red}, ${green}, 100)`;
-                
-                ctx.shadowColor = '#ffcc66';
-                ctx.shadowBlur = 5;
-                ctx.fillRect(-CAR_SIZE / 2, -CAR_SIZE / 2, CAR_SIZE, CAR_SIZE);
-                
-                // Индикатор направления
-                ctx.fillStyle = '#222';
-                ctx.fillRect(-3, -CAR_SIZE / 2 - 4, 6, 6);
-                
-                ctx.restore();
-            });
-            
-            // Сенсоры лучшей машины
-            if (population.length > 0) {
-                const bestCar = population.reduce((a, b) => 
-                    (a.fitness > b.fitness) ? a : b
-                );
-                
-                if (bestCar.alive) {
-                    const sensors = bestCar.getSensors();
-                    const sensorAngles = [
-                        bestCar.angle,
-                        bestCar.angle - Math.PI / 4,
-                        bestCar.angle + Math.PI / 4,
-                        bestCar.angle - Math.PI / 2,
-                        bestCar.angle + Math.PI / 2,
-                    ];
+            // Рисуем мир
+            for (let y = 0; y < WORLD_HEIGHT; y++) {
+                for (let x = 0; x < WORLD_WIDTH; x++) {
+                    const px = x * TILE_SIZE;
+                    const py = y * TILE_SIZE;
                     
-                    for (let i = 0; i < 5; i++) {
-                        const dist = Math.min(sensors[i], 50);
-                        const endX = bestCar.x + Math.cos(sensorAngles[i]) * dist;
-                        const endY = bestCar.y + Math.sin(sensorAngles[i]) * dist;
-                        
-                        ctx.beginPath();
-                        ctx.moveTo(bestCar.x, bestCar.y);
-                        ctx.lineTo(endX, endY);
-                        ctx.strokeStyle = i === 0 ? '#00ffaa' : '#ffaa00';
-                        ctx.lineWidth = 1.5;
-                        ctx.stroke();
+                    switch (world[y][x]) {
+                        case TILE.WALL:
+                            ctx.fillStyle = '#4a4a5a';
+                            ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                            ctx.fillStyle = '#5a5a6a';
+                            ctx.fillRect(px + 2, py + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+                            break;
+                        case TILE.FOOD:
+                            ctx.fillStyle = '#2d4a2d';
+                            ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                            ctx.fillStyle = '#ff4444';
+                            ctx.beginPath();
+                            ctx.arc(px + TILE_SIZE / 2, py + TILE_SIZE / 2, 5, 0, Math.PI * 2);
+                            ctx.fill();
+                            break;
+                        default:
+                            ctx.fillStyle = '#2d4a2d';
+                            ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
                     }
                 }
             }
+            
+            // Рисуем ИИ-человечков
+            population.forEach(person => {
+                if (!person.alive) return;
+                
+                const px = person.x * TILE_SIZE;
+                const py = person.y * TILE_SIZE;
+                
+                // Тело
+                const fitnessRatio = person.fitness / (bestScore || 1);
+                const green = Math.floor(255 * Math.min(fitnessRatio, 1));
+                const red = Math.floor(255 * (1 - Math.min(fitnessRatio, 1)));
+                
+                ctx.fillStyle = `rgb(${red}, ${green}, 150)`;
+                ctx.fillRect(px + 4, py + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+                
+                // Глаза (показывают направление)
+                ctx.fillStyle = '#000';
+                const eyeOffset = 3;
+                switch (person.direction) {
+                    case 0: // вверх
+                        ctx.fillRect(px + 6, py + 6, 3, 3);
+                        ctx.fillRect(px + 11, py + 6, 3, 3);
+                        break;
+                    case 1: // вправо
+                        ctx.fillRect(px + 11, py + 6, 3, 3);
+                        ctx.fillRect(px + 11, py + 11, 3, 3);
+                        break;
+                    case 2: // вниз
+                        ctx.fillRect(px + 6, py + 11, 3, 3);
+                        ctx.fillRect(px + 11, py + 11, 3, 3);
+                        break;
+                    case 3: // влево
+                        ctx.fillRect(px + 6, py + 6, 3, 3);
+                        ctx.fillRect(px + 6, py + 11, 3, 3);
+                        break;
+                }
+                
+                // Индикатор энергии
+                if (person.energy < 30) {
+                    ctx.fillStyle = '#ff0000';
+                    ctx.fillRect(px + 2, py - 2, 16, 3);
+                    ctx.fillStyle = '#00ff00';
+                    ctx.fillRect(px + 2, py - 2, 16 * (person.energy / 100), 3);
+                }
+            });
         }
-
+        
         // === ИГРОВОЙ ЦИКЛ ===
         function gameLoop() {
-            // Выполняем шаги симуляции
             const stepsPerFrame = speedMultiplier;
             
             for (let step = 0; step < stepsPerFrame; step++) {
                 let allDead = true;
                 
-                // Обновляем все машины
-                population.forEach(car => {
-                    if (car.alive) {
-                        car.update();
+                population.forEach(person => {
+                    if (person.alive) {
+                        person.step();
                         allDead = false;
                     }
                 });
                 
-                // Если все машины мертвы или прошло много кадров - эволюция
-                if (allDead || frameCount > 300) {
+                if (allDead) {
                     evolvePopulation();
-                    frameCount = 0;
-                    break;
                 }
-                
-                frameCount++;
             }
             
             // Обновляем статистику
-            const aliveCount = population.filter(car => car.alive).length;
-            const bestCar = population.reduce((a, b) => 
+            const aliveCount = population.filter(p => p.alive).length;
+            const bestPerson = population.reduce((a, b) => 
                 (a.fitness > b.fitness) ? a : b
             );
             
-            document.getElementById('lapCounter').innerText = bestCar.lapsCompleted;
+            document.getElementById('foodCounter').innerText = bestPerson.foodEaten;
+            document.getElementById('stepCounter').innerText = bestPerson.steps;
             document.getElementById('generationCounter').innerText = generation;
-            document.getElementById('bestScore').innerText = Math.floor(bestScore);
-            document.getElementById('brainStatus').innerText = 
+            document.getElementById('aiStatus').innerText = 
                 `Живы: ${aliveCount}/${POPULATION_SIZE}`;
             
-            // Рисуем
             draw();
             
             requestAnimationFrame(gameLoop);
         }
-
+        
         // === ОБРАБОТЧИКИ КНОПОК ===
         const speedButtons = {
             'speed1x': 1,
@@ -559,9 +630,10 @@
         }
         
         // === ЗАПУСК ===
+        createWorld();
         createInitialPopulation();
         gameLoop();
     })();
 </script>
 </body>
-</html>
+    </html>
