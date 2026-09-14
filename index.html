@@ -2,1569 +2,619 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <title>ГРАНЬ — АЭРОПОРТ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoundPad 42 + Трансляция</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; touch-action: none; }
-        html, body { width: 100%; height: 100%; overflow: hidden; background: #7fd0ff; font-family: Arial, sans-serif; }
-        #game { position: fixed; inset: 0; }
-        canvas { display: block; }
-        #start { position: fixed; inset: 0; z-index: 9; background: linear-gradient(#7fd0ff, #2078b8); display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
-        #start h1 { font-size: 26px; margin-bottom: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-        #start p { font-size: 14px; margin-bottom: 12px; opacity: 0.9; }
-        #skins { display: flex; gap: 9px; margin-bottom: 18px; flex-wrap: wrap; justify-content: center; }
-        .skin { width: 56px; height: 56px; border-radius: 14px; border: 3px solid #ffffff66; cursor: pointer; transition: transform 0.2s; }
-        .skin.sel { border-color: #00ff88; transform: scale(1.15); box-shadow: 0 0 15px #00ff88aa; }
-        #go { border: 0; border-radius: 16px; background: white; color: #111; font-weight: 900; font-size: 18px; padding: 16px 35px; cursor: pointer; z-index: 10; box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: transform 0.1s; }
-        #go:active { transform: scale(0.95); }
-        #hint { position: fixed; bottom: 20px; background: #000b; color: #ffd200; padding: 10px 18px; border-radius: 20px; font-weight: 700; font-size: 13px; }
-        #ui { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
-        #ui > * { pointer-events: auto; }
-        #status { position: absolute; left: 10px; top: 10px; background: #000b; color: white; padding: 9px 14px; border-radius: 10px; font-weight: 700; backdrop-filter: blur(4px); }
-        #coins { position: absolute; left: 12px; bottom: 18px; background: #000c; color: #ffd700; border: 2px solid #ffd70077; padding: 9px 15px; border-radius: 22px; font-size: 22px; font-weight: 900; backdrop-filter: blur(4px); }
-        #droneBtn { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); width: 76px; height: 76px; border-radius: 50%; border: 3px solid #fff8; background: #20c060; color: white; font-size: 35px; display: none; align-items: center; justify-content: center; cursor: pointer; z-index: 6; box-shadow: 0 4px 15px #0007; transition: all 0.2s; }
-        #droneBtn:active { transform: translateY(-50%) scale(.9); }
-        #droneShopBtn { position: absolute; left: 15px; top: 50%; transform: translateY(calc(-50% - 95px)); width: 56px; height: 56px; border-radius: 50%; border: 3px solid #fff8; background: #ff9800; color: white; font-size: 28px; display: none; align-items: center; justify-content: center; cursor: pointer; z-index: 6; box-shadow: 0 4px 15px #0007; }
-        #droneShopBtn:active { transform: translateY(calc(-50% - 95px)) scale(.9); }
-        #enterDroneBtn { position: absolute; left: 50%; top: 60%; transform: translate(-50%, -50%); background: #20c060; color: white; border: 3px solid #fff; border-radius: 20px; padding: 14px 28px; font-size: 18px; font-weight: 900; cursor: pointer; display: none; align-items: center; justify-content: center; z-index: 7; box-shadow: 0 4px 15px #0009; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0%, 100% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(1.05); } }
-        #enterDroneBtn:active { transform: translate(-50%, -50%) scale(0.95); }
-        #joyA, #djoyA { position: absolute; left: 0; bottom: 0; width: 50%; height: 70%; }
-        #djoyA { display: none; }
-        #joy, #djoy { position: absolute; width: 130px; height: 130px; border-radius: 50%; background: #0003; display: none; transform: translate(-50%,-50%); pointer-events: none; }
-        #stick, #dstick { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin-left: -27px; margin-top: -27px; border-radius: 50%; background: #fff5; }
-        #jumpBtn { position: absolute; right: 30px; bottom: 35px; width: 85px; height: 85px; border-radius: 50%; border: 3px solid #ffffff66; background: #0000004d; color: white; font-size: 36px; display: none; align-items: center; justify-content: center; cursor: pointer; z-index: 6; backdrop-filter: blur(6px); box-shadow: 0 4px 15px #0007; }
-        #jumpBtn:active { transform: scale(.88); background: #ffffff33; }
-        .db { position: absolute; right: 25px; width: 70px; height: 70px; border-radius: 50%; border: 2px solid #fff8; background: #0007; color: white; font-size: 28px; display: none; align-items: center; justify-content: center; cursor: pointer; }
-        .up { bottom: 130px; background: #2ecc71aa; }
-        .down { bottom: 40px; background: #3498dbaa; }
-        .exit { bottom: 220px; background: #e74c3caa; font-size: 22px; }
-        .note { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%); background: #000d; color: white; padding: 20px 35px; border-radius: 16px; font-size: 20px; font-weight: 900; z-index: 20; animation: f 2s forwards; pointer-events: none; }
-        @keyframes f { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
-        #droneShopModal { position: fixed; inset: 0; background: #000a; z-index: 50; display: none; align-items: center; justify-content: center; padding-right: 110px; }
-        #droneShopModal.show { display: flex; }
-        #droneShopContent { background: #1a1a2e; border-radius: 20px; padding: 20px; width: 90%; max-width: 400px; text-align: center; position: relative; }
-        #droneShopContent h2 { color: white; margin-bottom: 10px; font-size: 22px; }
-        #closeShopX { position: fixed; right: 15px; top: 50%; transform: translateY(-50%); width: 90px; height: 90px; border-radius: 50%; border: 3px solid #fff; background: #e74c3c; color: white; font-size: 42px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 60; box-shadow: 0 4px 15px #0009; }
-        #closeShopX:active { transform: translateY(-50%) scale(.9); }
-        #pageArea { min-height: 220px; display: flex; align-items: center; justify-content: center; }
-        #droneGrid { display: grid; grid-template-columns: 1fr; gap: 10px; width: 100%; }
-        .droneCard { background: #16213e; border-radius: 15px; padding: 15px; cursor: pointer; border: 3px solid transparent; transition: all .2s; width: 100%; }
-        .droneCard.selected { border-color: #00ff88; background: #1a3a5c; }
-        .droneCard.locked { opacity: .6; }
-        .droneImg { width: 100%; height: 70px; background: #0f3460; border-radius: 10px; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; font-size: 36px; }
-        .droneName { color: white; font-weight: 700; font-size: 15px; margin-bottom: 4px; }
-        .dronePrice { color: #ffd700; font-weight: 900; font-size: 16px; }
-        .droneBuyBtn { background: #ff9800; color: white; border: none; border-radius: 10px; padding: 10px 20px; font-weight: 700; cursor: pointer; margin-top: 8px; font-size: 15px; }
-        .droneBuyBtn:active { transform: scale(.95); }
-        #navRow { display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 12px; }
-        #prevPage, #nextPage { width: 60px; height: 60px; border-radius: 50%; border: 3px solid #fff; background: #2a52be; color: white; font-size: 28px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        #prevPage:active, #nextPage:active { transform: scale(.9); background: #1a3a8e; }
-        #pageInfo { color: white; font-size: 20px; font-weight: 900; min-width: 70px; }
-        #closeShop { background: #e74c3c; color: white; border: none; border-radius: 12px; padding: 12px 30px; font-size: 16px; font-weight: 900; cursor: pointer; margin-top: 12px; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px 0;
+            user-select: none;
+        }
+
+        h1 { margin-bottom: 5px; font-weight: 400; }
         
-        .gender-btn { padding: 15px 40px; font-size: 18px; font-weight: 900; border-radius: 12px; border: none; color: white; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: transform 0.1s; width: 220px; }
-        .gender-btn:active { transform: scale(0.95); }
-        .btn-boy { background: #2196F3; }
-        .btn-girl { background: #E91E63; }
-        .btn-back { padding: 10px 25px; font-size: 16px; font-weight: 700; border-radius: 10px; border: 2px solid white; background: transparent; color: white; cursor: pointer; margin-bottom: 15px; transition: background 0.2s; }
-        .btn-back:active { background: #ffffff22; }
+        .hint {
+            color: #666;
+            font-size: 0.8rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .controls { margin-bottom: 10px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+        button.save-btn {
+            padding: 8px 16px;
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button.save-btn:hover { background: #444; }
+        button.stream-btn { background: #1565c0; border-color: #1976d2; }
+        button.stream-btn:hover { background: #1976d2; }
+        button.stream-btn.active { background: #c62828; border-color: #e53935; }
+
+        .status-msg { height: 20px; font-size: 0.9rem; color: #4caf50; margin-bottom: 10px; text-align: center; }
+
+        .stream-panel {
+            display: none;
+            background: #1e1e1e;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            max-width: 700px;
+            width: 90%;
+            border: 1px solid #333;
+        }
+        .stream-panel.visible { display: block; }
+        .stream-panel h3 { margin: 0 0 10px 0; font-weight: 400; font-size: 1rem; color: #4caf50; }
+        .stream-panel input {
+            padding: 8px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 5px;
+            font-size: 1rem;
+            width: 60%;
+            margin-right: 8px;
+        }
+        .stream-panel button {
+            padding: 8px 14px;
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .stream-panel button:hover { background: #444; }
+        .room-code {
+            font-family: monospace;
+            font-size: 1.4rem;
+            color: #4caf50;
+            letter-spacing: 3px;
+            user-select: all;
+            margin: 8px 0;
+        }
+        .conn-status {
+            font-size: 0.85rem;
+            color: #888;
+            margin-top: 8px;
+        }
+
+        /* Сетка */
+        .pad-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 12px;
+            max-width: 800px;
+            width: 95%;
+            padding: 20px;
+            background: #1e1e1e;
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+        }
+
+        .pad-btn {
+            aspect-ratio: 1;
+            position: relative;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 5px;
+            background: #2a2a2a;
+            color: #555;
+            box-shadow: inset 0 0 5px #000;
+        }
+
+        .pad-btn.has-sound {
+            background: linear-gradient(145deg, #2e7d32, #1b5e20);
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .pad-btn.playing {
+            background: linear-gradient(145deg, #4caf50, #2e7d32) !important;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.6);
+            transform: scale(0.98);
+        }
+
+        .pad-number {
+            position: absolute;
+            top: 4px; left: 6px;
+            font-size: 0.7rem;
+            opacity: 0.6;
+        }
+
+        .pad-label {
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-align: center;
+            word-wrap: break-word;
+            max-width: 100%;
+            z-index: 2;
+            pointer-events: none;
+            line-height: 1.1;
+        }
+
+        .empty-label { font-size: 0.65rem; opacity: 0.4; }
+
+        .delete-btn {
+            position: absolute;
+            top: 3px; right: 3px;
+            width: 18px; height: 18px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #fff;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 10;
+        }
+
+        .pad-btn:hover .delete-btn { opacity: 1; }
+        .delete-btn:hover { background: #d32f2f; }
+
+        #fileInput { display: none; }
+
+        @media (max-width: 600px) {
+            .pad-grid { grid-template-columns: repeat(4, 1fr); }
+            .stream-panel input { width: 100%; margin-bottom: 8px; }
+        }
     </style>
 </head>
 <body>
-<div id="game">
-    <div id="start">
-        <h1>ГРАНЬ — 3D МИР</h1>
-        <p>Аэропорт + новая механика дрона</p>
-        
-        <div id="genderSelect" style="display: flex; flex-direction: column; align-items: center; gap: 15px; margin-bottom: 20px;">
-            <h2 style="font-size: 20px; margin-bottom: 5px;">Выберите пол:</h2>
-            <button id="btnBoy" class="gender-btn btn-boy">👦 Мальчик</button>
-            <button id="btnGirl" class="gender-btn btn-girl">👧 Девочка</button>
-        </div>
 
-        <div id="skinSelect" style="display: none; flex-direction: column; align-items: center; width: 100%;">
-            <h2 id="skinTitle" style="font-size: 20px; margin-bottom: 10px;">Выберите внешний вид:</h2>
-            <div id="skins"></div>
-            <button id="btnBackGender" class="btn-back">← Назад к выбору пола</button>
-            <button id="go">▶ НАЧАТЬ</button>
-        </div>
+    <h1>SoundPad 42</h1>
+    <div class="hint">Нажми на пустую кнопку, чтобы загрузить звук.<br>Нажми на играющую, чтобы остановить.</div>
+    
+    <div class="controls">
+        <button class="save-btn" onclick="saveProgress()">💾 Сохранить</button>
+        <button class="save-btn" onclick="clearAll()">🗑️ Сброс</button>
+        <button class="save-btn stream-btn" id="streamBtn" onclick="toggleStream()">🔊 Создать комнату</button>
+    </div>
+    <div class="status-msg" id="statusMsg"></div>
 
-        <div id="hint"> Лучше играть горизонтально</div>
-    </div>
-    <div id="ui">
-        <div id="status"> Пешком</div>
-        <div id="coins">🪙 <span id="coin">0</span></div>
-        <button id="droneBtn">🚁</button>
-        <button id="droneShopBtn">➕</button>
-        <button id="enterDroneBtn">🚁 Сесть</button>
-        <button id="jumpBtn">⬆</button>
-        <div id="joyA"></div>
-        <div id="joy"><div id="stick"></div></div>
-        <div id="djoyA"></div>
-        <div id="djoy"><div id="dstick"></div></div>
-        <button id="exit" class="db exit">🚪</button>
-        <button id="up" class="db up">⬆</button>
-        <button id="down" class="db down">⬇</button>
-    </div>
-    <div id="droneShopModal">
-        <div id="droneShopContent">
-            <button id="closeShopX">✕</button>
-            <h2>🚁 Магазин дронов</h2>
-            <div id="pageArea"><div id="droneGrid"></div></div>
-            <div id="navRow">
-                <button id="prevPage">◀</button>
-                <div id="pageInfo">1/1</div>
-                <button id="nextPage">▶</button>
-            </div>
-            <button id="closeShop">✖ Закрыть</button>
+    <div class="stream-panel" id="streamPanel">
+        <div id="hostView" style="display:none;">
+            <h3>🎙️ Трансляция активна — отправь код другу:</h3>
+            <div class="room-code" id="roomCode">------</div>
+            <button onclick="copyRoomCode()">📋 Копировать код</button>
+            <button onclick="copyRoomLink()">🔗 Копировать ссылку</button>
+            <div class="conn-status" id="hostStatus">Ожидание подключения...</div>
+        </div>
+        <div id="guestView" style="display:none;">
+            <h3>🎧 Присоединиться к комнате:</h3>
+            <input type="text" id="joinCodeInput" placeholder="Введи код (6 символов)" maxlength="6">
+            <button onclick="joinRoom()">Подключиться</button>
+            <div class="conn-status" id="guestStatus">Не подключено</div>
+        </div>
+        <div id="modeSelector">
+            <h3>Выбери режим:</h3>
+            <button onclick="startHost()">🎙️ Я транслирую музыку</button>
+            <button onclick="showGuest()">🎧 Я слушаю друга</button>
         </div>
     </div>
-</div>
 
-<script type="importmap">
-{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js" } }
-</script>
+    <div class="pad-grid" id="grid"></div>
+    <input type="file" id="fileInput" accept="audio/*">
 
-<script type="module">
-import * as THREE from "three";
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script>
+        const grid = document.getElementById('grid');
+        const fileInput = document.getElementById('fileInput');
+        const statusMsg = document.getElementById('statusMsg');
+        const MAX_DURATION = 7200;
+        const TOTAL_BUTTONS = 42;
 
-const $ = id => document.getElementById(id);
-const B = (w, h, d) => new THREE.BoxGeometry(w, h, d);
-const M = (c, r = .65, m = 0) => new THREE.MeshStandardMaterial({ color: c, roughness: r, metalness: m });
+        let soundData = {}; 
+        let activeButtonIndex = null;
+        let currentAudio = null; 
+        let currentPlayingIndex = null; 
 
-const N = t => {
-    let n = document.createElement("div");
-    n.className = "note"; n.textContent = t;
-    document.body.appendChild(n);
-    setTimeout(() => n.remove(), 2000);
-};
+        /* ---------- IndexedDB ---------- */
+        const DB_NAME = 'SoundPadDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'sounds';
+        let db = null;
 
-const mk = (g, m) => {
-    let o = new THREE.Mesh(g, m);
-    o.castShadow = o.receiveShadow = true;
-    return o;
-};
-
-// ============================================================
-//  АУДИО СИСТЕМА
-// ============================================================
-let audioCtx = null;
-let masterGain = null;
-let droneNodes = [];
-let noiseNode = null;
-let noiseGain = null;
-let windNode = null;
-let windGain = null;
-let audioStarted = false;
-
-function createPinkNoiseBuffer() {
-    if (!audioCtx) return null;
-    const bufferSize = audioCtx.sampleRate * 2; 
-    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-    const data = buffer.getChannelData(0);
-    let b0, b1, b2, b3, b4, b5, b6;
-    b0 = b1 = b2 = b3 = b4 = b5 = b6 = 0.0;
-    for (let i = 0; i < bufferSize; i++) {
-        const white = Math.random() * 2 - 1;
-        b0 = 0.99886 * b0 + white * 0.0555179;
-        b1 = 0.99332 * b1 + white * 0.0750759;
-        b2 = 0.96900 * b2 + white * 0.1538520;
-        b3 = 0.86650 * b3 + white * 0.3104856;
-        b4 = 0.55000 * b4 + white * 0.5329522;
-        b5 = -0.7616 * b5 - white * 0.0168980;
-        data[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
-        data[i] *= 0.11;
-        b6 = white * 0.115926;
-    }
-    return buffer;
-}
-
-function initAudio() {
-    if (audioStarted) return;
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    audioCtx = new AudioContext();
-    audioStarted = true;
-
-    masterGain = audioCtx.createGain();
-    masterGain.gain.value = 0.9;
-    masterGain.connect(audioCtx.destination);
-
-    for (let i = 0; i < 4; i++) createRealisticMotor(i);
-
-    const pinkBuffer = createPinkNoiseBuffer();
-    noiseNode = audioCtx.createBufferSource();
-    noiseNode.buffer = pinkBuffer;
-    noiseNode.loop = true;
-    
-    const noiseFilter = audioCtx.createBiquadFilter();
-    noiseFilter.type = 'highpass';
-    noiseFilter.frequency.value = 1200;
-    
-    const noiseResonance = audioCtx.createBiquadFilter();
-    noiseResonance.type = 'peaking';
-    noiseResonance.Q.value = 2;
-    noiseResonance.frequency.value = 2500;
-    noiseResonance.gain.value = 5;
-
-    noiseGain = audioCtx.createGain();
-    noiseGain.gain.value = 0;
-
-    noiseNode.connect(noiseFilter);
-    noiseFilter.connect(noiseResonance);
-    noiseResonance.connect(noiseGain);
-    noiseGain.connect(masterGain);
-    noiseNode.start();
-
-    windNode = audioCtx.createBufferSource();
-    windNode.buffer = pinkBuffer;
-    windNode.loop = true;
-    
-    const windFilter = audioCtx.createBiquadFilter();
-    windFilter.type = 'lowpass';
-    windFilter.frequency.value = 400;
-
-    windGain = audioCtx.createGain();
-    windGain.gain.value = 0;
-
-    windNode.connect(windFilter);
-    windFilter.connect(windGain);
-    windGain.connect(masterGain);
-    windNode.start();
-}
-
-function createRealisticMotor(index) {
-    const osc = audioCtx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.value = 100; 
-
-    const modOsc = audioCtx.createOscillator();
-    modOsc.type = 'square';
-    modOsc.frequency.value = 50;
-
-    const modGain = audioCtx.createGain();
-    modGain.gain.value = 200;
-
-    modOsc.connect(modGain);
-    modGain.connect(osc.frequency);
-
-    const filter = audioCtx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = 800;
-    filter.Q.value = 1.5;
-
-    const gain = audioCtx.createGain();
-    gain.gain.value = 0;
-
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(masterGain);
-
-    osc.start();
-    modOsc.start();
-
-    droneNodes.push({ osc, modOsc, filter, gain, modGain, baseFreq: 120 + (index * 3) });
-}
-
-function updateDroneAudio(speedRatio, isNearObject) {
-    if (!audioCtx) { initAudio(); return; }
-    if (!isD) return; 
-    
-    const now = audioCtx.currentTime;
-    const targetFreq = 150 + (speedRatio * 1800); 
-    
-    droneNodes.forEach((node, i) => {
-        const detune = (Math.random() - 0.5) * 5; 
-        node.osc.frequency.setTargetAtTime(node.baseFreq + targetFreq + detune, now, 0.03);
-        node.modOsc.frequency.setTargetAtTime(40 + (speedRatio * 300), now, 0.03);
-        node.filter.frequency.setTargetAtTime(600 + (speedRatio * 2500), now, 0.03);
-        
-        const idleVol = 0.04;
-        const targetVol = idleVol + (speedRatio * 0.12);
-        node.gain.gain.setTargetAtTime(targetVol, now, 0.05);
-    });
-
-    noiseGain.gain.setTargetAtTime(speedRatio * 0.3, now, 0.1);
-    windGain.gain.setTargetAtTime(speedRatio * 0.4, now, 0.1);
-    windNode.playbackRate.setTargetAtTime(0.5 + speedRatio, now, 0.1);
-}
-
-function playExplosionSound() {
-    if (!audioCtx) return;
-    const now = audioCtx.currentTime;
-    const duration = 4.5;
-
-    const sub = audioCtx.createOscillator();
-    const subGain = audioCtx.createGain();
-    sub.type = 'sine';
-    sub.frequency.setValueAtTime(150, now);
-    sub.frequency.exponentialRampToValueAtTime(0.01, now + duration);
-    subGain.gain.setValueAtTime(2.5, now);
-    subGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-    sub.connect(subGain);
-    subGain.connect(masterGain);
-    sub.start(now);
-    sub.stop(now + duration);
-
-    const bufferSize = audioCtx.sampleRate * duration;
-    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i/bufferSize);
-    
-    const noise = audioCtx.createBufferSource();
-    noise.buffer = buffer;
-    
-    const noiseFilter = audioCtx.createBiquadFilter();
-    noiseFilter.type = 'lowpass';
-    noiseFilter.frequency.setValueAtTime(3000, now);
-    noiseFilter.frequency.linearRampToValueAtTime(100, now + duration);
-
-    const noiseGainLocal = audioCtx.createGain();
-    noiseGainLocal.gain.setValueAtTime(1.8, now);
-    noiseGainLocal.gain.exponentialRampToValueAtTime(0.001, now + duration);
-    
-    noise.connect(noiseFilter);
-    noiseFilter.connect(noiseGainLocal);
-    noiseGainLocal.connect(masterGain);
-    noise.start(now);
-}
-
-function stopDroneAudio() {
-    if (!audioCtx) return;
-    const now = audioCtx.currentTime;
-    
-    droneNodes.forEach(node => {
-        node.gain.gain.cancelScheduledValues(now);
-        node.gain.gain.setValueAtTime(0, now);
-        node.osc.frequency.cancelScheduledValues(now);
-        node.osc.frequency.setValueAtTime(100, now);
-        node.modOsc.frequency.cancelScheduledValues(now);
-        node.modOsc.frequency.setValueAtTime(50, now);
-    });
-
-    noiseGain.gain.cancelScheduledValues(now);
-    noiseGain.gain.setValueAtTime(0, now);
-    
-    windGain.gain.cancelScheduledValues(now);
-    windGain.gain.setValueAtTime(0, now);
-}
-
-// ============================================================
-//  СИСТЕМА ВЗРЫВА
-// ============================================================
-let explosions = [];
-let cameraShake = 0;
-
-function createExplosion(x, y, z) {
-    const group = new THREE.Group();
-    group.position.set(x, y, z);
-    cameraShake = 1.5;
-
-    const light = new THREE.PointLight(0xffaa00, 15, 60);
-    light.position.y = 2;
-    group.add(light);
-
-    const coreGeo = new THREE.SphereGeometry(1.5, 32, 32);
-    const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const core = new THREE.Mesh(coreGeo, coreMat);
-    group.add(core);
-
-    const shellGeo = new THREE.SphereGeometry(2.0, 32, 32);
-    const shellMat = new THREE.MeshBasicMaterial({ 
-        color: 0xff4500, transparent: true, opacity: 0.8, side: THREE.BackSide 
-    });
-    const shell = new THREE.Mesh(shellGeo, shellMat);
-    group.add(shell);
-
-    const particleCount = 100;
-    for (let i = 0; i < particleCount; i++) {
-        const size = 0.4 + Math.random() * 0.8;
-        const geo = new THREE.SphereGeometry(size, 8, 6);
-        const mat = new THREE.MeshBasicMaterial({ 
-            color: Math.random() > 0.5 ? 0xffaa00 : 0xff3300, 
-            transparent: true, opacity: 1 
-        });
-        const particle = new THREE.Mesh(geo, mat);
-        
-        const theta = Math.random() * Math.PI * 2;
-        const phi = Math.acos(2 * Math.random() - 1);
-        const speed = 5 + Math.random() * 15;
-        
-        particle.position.x = Math.sin(phi) * Math.cos(theta) * 0.5;
-        particle.position.y = Math.sin(phi) * Math.sin(theta) * 0.5;
-        particle.position.z = Math.cos(phi) * 0.5;
-        
-        particle.userData.vel = new THREE.Vector3(
-            Math.sin(phi) * Math.cos(theta) * speed,
-            Math.sin(phi) * Math.sin(theta) * speed,
-            Math.cos(phi) * speed
-        );
-        particle.userData.gravity = new THREE.Vector3(0, -9.8, 0);
-        particle.userData.life = 1.0;
-        particle.userData.decay = 0.2 + Math.random() * 0.3;
-        
-        group.add(particle);
-    }
-    
-    scene.add(group);
-    explosions.push({ group, age: 0, duration: 4.0, light, core, shell });
-}
-
-function updateExplosions(dt) {
-    for (let i = explosions.length - 1; i >= 0; i--) {
-        const exp = explosions[i];
-        exp.age += dt;
-        const progress = exp.age / exp.duration;
-        
-        const scale = 1 + progress * 8;
-        exp.core.scale.set(scale, scale, scale);
-        exp.shell.scale.set(scale * 1.2, scale * 1.2, scale * 1.2);
-        
-        exp.light.intensity = 15 * (1 - progress);
-        exp.shell.material.opacity = 0.8 * (1 - progress);
-        exp.core.material.color.setHSL(0.08 - progress * 0.08, 1, 0.5);
-
-        for (let j = exp.group.children.length - 1; j >= 0; j--) {
-            const child = exp.group.children[j];
-            if (child.userData.vel) {
-                child.userData.vel.add(child.userData.gravity.clone().multiplyScalar(dt));
-                child.position.add(child.userData.vel.clone().multiplyScalar(dt));
-                child.rotation.x += dt * 2;
-                child.rotation.y += dt * 2;
-                child.userData.life -= dt * child.userData.decay;
-                child.material.opacity = child.userData.life;
-                if (child.userData.life <= 0) exp.group.remove(child);
-            }
-        }
-        
-        if (exp.age >= exp.duration) { 
-            scene.remove(exp.group); 
-            explosions.splice(i, 1); 
-        }
-    }
-    
-    if (cameraShake > 0) {
-        cameraShake -= dt * 2;
-        if (cameraShake < 0) cameraShake = 0;
-    }
-}
-
-// ============================================================
-//  КОЛЛИЗИИ
-// ============================================================
-let colliders = [];
-
-function addColliders(obj) {
-    obj.updateMatrixWorld(true);
-    obj.traverse(child => {
-        if (child.isMesh && child.geometry && child.geometry.attributes.position) {
-            if (child.material && child.material.transparent && child.material.opacity < 0.8) return;
-            if (child.geometry.type === 'SphereGeometry' && child.geometry.parameters.radius < 0.3) return;
-            
-            const box = new THREE.Box3().setFromObject(child);
-            const b = 0.05;
-            colliders.push({ 
-                minX: box.min.x - b, maxX: box.max.x + b, 
-                minY: box.min.y - b, maxY: box.max.y + b, 
-                minZ: box.min.z - b, maxZ: box.max.z + b 
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+                req.onupgradeneeded = (e) => {
+                    const d = e.target.result;
+                    if (!d.objectStoreNames.contains(STORE_NAME)) d.createObjectStore(STORE_NAME);
+                };
+                req.onsuccess = (e) => { db = e.target.result; resolve(db); };
+                req.onerror = (e) => reject(e.target.error);
             });
         }
-    });
-}
-
-function hitPlayer(px, pz, pr) {
-    const py0 = player.position.y; const py1 = py0 + 2.5;
-    for (const c of colliders) {
-        if (px + pr > c.minX && px - pr < c.maxX && pz + pr > c.minZ && pz - pr < c.maxZ && py1 > c.minY && py0 < c.maxY) return true;
-    }
-    return false;
-}
-
-function hitDrone(px, py, pz, pr) {
-    for (const c of colliders) {
-        if (px + pr > c.minX && px - pr < c.maxX && py + pr > c.minY && py - pr < c.maxY && pz + pr > c.minZ && pz - pr < c.maxZ) return true;
-    }
-    return false;
-}
-
-function checkProximity(px, py, pz) {
-    let minDist = Infinity;
-    for (const c of colliders) {
-        const dx = Math.max(c.minX - px, 0, px - c.maxX);
-        const dy = Math.max(c.minY - py, 0, py - c.maxY);
-        const dz = Math.max(c.minZ - pz, 0, pz - c.maxZ);
-        const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
-        if (dist < minDist) minDist = dist;
-    }
-    return minDist < 15;
-}
-
-// ============================================================
-//  СЦЕНА
-// ============================================================
-let scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
-scene.fog = new THREE.Fog(0x87ceeb, 90, 700);
-
-let camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, .1, 1500);
-scene.add(camera);
-
-let renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
-renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-$("game").appendChild(renderer.domElement);
-
-scene.add(new THREE.HemisphereLight(0x9fdcff, 0x3c7d3c, 1.15));
-scene.add(new THREE.AmbientLight(0xffffff, .3));
-let sun = new THREE.DirectionalLight(0xffeed0, 2.3);
-sun.position.set(120, 150, 80);
-sun.castShadow = true;
-
-sun.shadow.mapSize.set(2048, 2048);
-const shadowSize = 250;
-sun.shadow.camera.left = -shadowSize;
-sun.shadow.camera.right = shadowSize;
-sun.shadow.camera.top = shadowSize;
-sun.shadow.camera.bottom = -shadowSize;
-sun.shadow.camera.near = 1;
-sun.shadow.camera.far = 600;
-sun.shadow.bias = -0.0005;
-sun.shadow.normalBias = 0.02;
-
-sun.target = new THREE.Object3D();
-sun.target.position.set(0, 0, 0);
-scene.add(sun.target);
-scene.add(sun);
-
-let ground = mk(new THREE.PlaneGeometry(2000, 2000), M(0x4caf50, .9));
-ground.rotation.x = -Math.PI / 2;
-scene.add(ground);
-
-function road(x, z, w, d, r = 0) {
-    let o = mk(B(w, .08, d), M(0x333333, .9));
-    o.position.set(x, .04, z); o.rotation.y = r; scene.add(o);
-}
-road(0, 0, 800, 12);
-road(0, 0, 12, 800);
-road(150, 150, 300, 12, Math.PI / 4);
-
-// ============================================================
-//  ПЕРСОНАЖ
-// ============================================================
-const SK_BOY = [
-    { h:0x111111,s:0xf0c8a0,sh:0x111111,p:0x151515,shoe:0x111111,a:0xdd2222,e:"belt" },
-    { h:0x000000,s:0xe8b890,sh:0x111111,p:0x222222,shoe:0xffffff,a:0xffffff,e:"q",band:1 },
-    { h:0x4a3520,s:0xf0d0b0,sh:0xcfc3a0,p:0x4a4a33,shoe:0xffffff,a:0x3a3a25,e:"67" },
-    { h:0x5a3a1a,s:0xf0c8a0,sh:0xffffff,p:0x111111,shoe:0xaa2222,a:0xff6600,e:"x" },
-    { h:0x4a2f1a,s:0xf0d0b0,sh:0xffffff,p:0x2a1f15,shoe:0x8a6a4a,a:0x4a3020,e:"vest" }
-];
-
-const SK_GIRL = [
-    { h:0x5a3a1a,s:0xf0c8a0,sh:0xff69b4,p:0x4169e1,shoe:0xffffff,a:0xff1493,e:"longhair" },
-    { h:0xf5d76e,s:0xf0d0b0,sh:0xffffff,p:0xdc143c,shoe:0x333333,a:0xffd700,e:"ponytail" },
-    { h:0x111111,s:0xe8b890,sh:0x2ecc71,p:0x2c3e50,shoe:0xffffff,a:0x27ae60,e:"buns" },
-    { h:0xc0392b,s:0xf0c8a0,sh:0x9b59b6,p:0x95a5a6,shoe:0x2c3e50,a:0x8e44ad,e:"longhair" },
-    { h:0x3498db,s:0xf0d0b0,sh:0xf1c40f,p:0x2980b9,shoe:0xffffff,a:0xe67e22,e:"ponytail" }
-];
-
-let currentSkinArray = SK_BOY;
-let mySkin = 0;
-let player, arms = [], legs = [];
-
-function char(id) {
-    let sk = currentSkinArray[id], g = new THREE.Group(), A = [], L = [];
-    let skin = M(sk.s,.55), hair = M(sk.h,.9), shirt = M(sk.sh,.6);
-    let pants = M(sk.p,.8), shoe = M(sk.shoe,.55), acc = M(sk.a,.45);
-    
-    let torso = mk(B(2.2,2.2,1.25), shirt); torso.position.y = 3.2; g.add(torso);
-    
-    if (currentSkinArray === SK_GIRL) {
-        let breastGeo = new THREE.SphereGeometry(0.42, 8, 8);
-        breastGeo.scale(1, 1, 0.75);
-        let breastL = mk(breastGeo, shirt);
-        breastL.position.set(-0.5, 3.35, 0.7);
-        g.add(breastL);
-        
-        let breastR = mk(breastGeo.clone(), shirt);
-        breastR.position.set(0.5, 3.35, 0.7);
-        g.add(breastR);
-    }
-    
-    let belt = mk(B(2.35,.38,1.35), acc); belt.position.y = 2.15; g.add(belt);
-    
-    if (sk.e=="q") { let q = mk(B(.45,.75,.08), acc); q.position.set(0,3.45,.68); g.add(q); }
-    if (sk.e=="67") { let n = mk(B(.95,.85,.08), acc); n.position.set(0,3.35,.68); g.add(n); }
-    if (sk.e=="x") { for (let r of [-1,1]) { let x = mk(B(.14,.9,.08), acc); x.position.set(0,3.35,.68); x.rotation.z = r*.7; g.add(x); } }
-    if (sk.e=="vest") { let v = mk(B(1.45,1.9,.1), acc); v.position.set(0,3.25,.69); g.add(v); }
-    
-    let head = mk(B(1.8,1.7,1.55), skin); head.position.y = 5.2; g.add(head);
-    let ht = mk(B(1.9,.45,1.65), hair); ht.position.y = .9; head.add(ht);
-    let hf = mk(B(1.85,.35,.25), hair); hf.position.set(0,.72,.75); head.add(hf);
-    let hb = mk(B(1.9,.8,.28), hair); hb.position.set(0,.3,-.74); head.add(hb);
-    if (sk.band) { let bd = mk(B(1.95,.3,1.7), acc); bd.position.y = .48; head.add(bd); }
-    
-    if (sk.e === "ponytail") {
-        let pt = mk(B(0.7, 1.4, 0.7), hair); pt.position.set(0, 0.1, -0.9); head.add(pt);
-    } else if (sk.e === "longhair") {
-        let lh = mk(B(2.1, 1.6, 0.4), hair); lh.position.set(0, 0.0, -0.85); head.add(lh);
-    } else if (sk.e === "buns") {
-        let b1 = mk(new THREE.SphereGeometry(0.45, 8, 8), hair); b1.position.set(-0.8, 0.8, -0.6); head.add(b1);
-        let b2 = mk(new THREE.SphereGeometry(0.45, 8, 8), hair); b2.position.set(0.8, 0.8, -0.6); head.add(b2);
-    }
-
-    for (let sx of [-1,1]) {
-        let e = mk(new THREE.SphereGeometry(.22,12,12), M(0xffffff,.4)); e.position.set(sx*.5,.08,.8); head.add(e);
-        let p = mk(new THREE.SphereGeometry(.1,8,8), M(id>1?0x28aa35:0x222222,.3)); p.position.set(0,0,.18); e.add(p);
-    }
-    let mouth = mk(B(.65,.25,.08), M(0x7c1d1d,.5)); mouth.position.set(0,-.55,.79); head.add(mouth);
-    for (let sx of [-1,1]) {
-        let a = new THREE.Group(); a.position.set(sx*1.58,4,0);
-        let sl = mk(B(.7,.9,.78), shirt); sl.position.y = -.45; a.add(sl);
-        let fa = mk(B(.55,1,.58), skin); fa.position.y = -1.45; a.add(fa);
-        let ha = mk(B(.55,.45,.58), skin); ha.position.y = -2.1; a.add(ha);
-        g.add(a); A.push(a);
-    }
-    for (let sx of [-1,1]) {
-        let l = new THREE.Group(); l.position.set(sx*.62,2.2,0);
-        let th = mk(B(.78,1.55,.85), pants); th.position.y = -.78; l.add(th);
-        let sh = mk(B(.95,.45,1.4), shoe); sh.position.set(0,-1.72,.2); l.add(sh);
-        g.add(l); L.push(l);
-    }
-    g.scale.set(.42,.42,.42);
-    return { g, A, L };
-}
-
-function rebuild() {
-    if (player) scene.remove(player);
-    let c = char(mySkin); player = c.g; arms = c.A; legs = c.L; scene.add(player);
-}
-
-const hex = c => "#" + c.toString(16).padStart(6, "0");
-
-function renderSkins() {
-    $("skins").innerHTML = "";
-    currentSkinArray.forEach((s, i) => {
-        let b = document.createElement("div");
-        b.className = "skin" + (i == mySkin ? " sel" : "");
-        b.style.background = `linear-gradient(${hex(s.h)} 0 40%,${hex(s.sh)} 40% 75%,${hex(s.p)} 75%)`;
-        b.onclick = () => { 
-            mySkin = i; 
-            rebuild(); 
-            document.querySelectorAll(".skin").forEach(x => x.classList.remove("sel")); 
-            b.classList.add("sel"); 
-        };
-        $("skins").appendChild(b);
-    });
-}
-
-rebuild();
-renderSkins();
-
-$("btnBoy").onclick = () => {
-    currentSkinArray = SK_BOY;
-    mySkin = 0;
-    $("skinTitle").textContent = "Выберите внешний вид (Мальчик):";
-    $("genderSelect").style.display = "none";
-    $("skinSelect").style.display = "flex";
-    renderSkins();
-    rebuild();
-};
-
-$("btnGirl").onclick = () => {
-    currentSkinArray = SK_GIRL;
-    mySkin = 0;
-    $("skinTitle").textContent = "Выберите внешний вид (Девочка):";
-    $("genderSelect").style.display = "none";
-    $("skinSelect").style.display = "flex";
-    renderSkins();
-    rebuild();
-};
-
-$("btnBackGender").onclick = () => {
-    $("skinSelect").style.display = "none";
-    $("genderSelect").style.display = "flex";
-};
-
-// ============================================================
-//  ГЕОМЕТРИИ И МОДЕЛИ
-// ============================================================
-function getGeo(shape) {
-    switch(shape) {
-        case 'cube': return new THREE.BoxGeometry(2, 2, 2);
-        case 'sphere': return new THREE.SphereGeometry(1, 16, 16);
-        case 'cone': return new THREE.ConeGeometry(1, 2, 16);
-        case 'cyl': return new THREE.CylinderGeometry(1, 1, 2, 16);
-        case 'glass': return new THREE.BoxGeometry(2, 2, 0.1);
-        case 'torus': return new THREE.TorusGeometry(1, 0.3, 16, 32);
-        case 'pillow': {
-            let g = new THREE.SphereGeometry(1, 32, 32);
-            let p = g.attributes.position;
-            for (let i = 0; i < p.count; i++) {
-                let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
-                let len = Math.sqrt(x*x + y*y + z*z), nx = x/len, ny = y/len, nz = z/len;
-                let w = 1.3, d = 1.3, h = 0.32, rh = 0.08, cd = 0.04, cr = 0.25;
-                let nX = nx*w, nY = ny*h, nZ = nz*d;
-                let cf = Math.pow(Math.abs(nx)*Math.abs(nz), 0.4), cs = 1 - cf*cr;
-                nX *= cs; nZ *= cs;
-                let ef = Math.pow(Math.abs(ny), 0.6), rl = rh*ef*Math.sign(y||1);
-                let cdist = Math.sqrt(nx*nx + nz*nz), da = cd*(1-ef)*Math.sign(y||1);
-                nY += rl - da;
-                let ff = Math.sin(nx*6)*Math.cos(nz*6)*0.015 + Math.sin(nx*3+nz*4)*0.01;
-                nY += ff*(1-ef*0.5);
-                let ew = Math.sin(nx*12)*0.008 + Math.cos(nz*10)*0.008;
-                nY += ew*ef;
-                p.setXYZ(i, nX, nY, nZ);
-            }
-            g.computeVertexNormals();
-            return g;
+        function dbPut(key, value) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                tx.objectStore(STORE_NAME).put(value, key);
+                tx.oncomplete = () => resolve();
+                tx.onerror = (e) => reject(e.target.error);
+            });
         }
-        default: return new THREE.BoxGeometry(2, 2, 2);
-    }
-}
-
-function getMat(shape, color) {
-    if (shape === 'glass') return new THREE.MeshStandardMaterial({ color: color || "#4fd2ff", transparent: true, opacity: 0.3, roughness: 0.1, metalness: 0.1, side: THREE.DoubleSide });
-    if (shape === 'pillow') return new THREE.MeshStandardMaterial({ color: color || "#ffffff", roughness: 0.75, metalness: 0.0 });
-    return new THREE.MeshStandardMaterial({ color: color || "#ffffff", roughness: 0.4, metalness: 0.2 });
-}
-
-function buildModelFromData(data, x, z, rotY = 0) {
-    const grp = new THREE.Group();
-    data.objects.forEach(o => {
-        const geo = getGeo(o.shape);
-        const mat = getMat(o.shape, o.color);
-        const m = new THREE.Mesh(geo, mat);
-        if (o.position) m.position.fromArray(o.position);
-        if (o.scale) m.scale.fromArray(o.scale);
-        if (o.rotation) { m.quaternion.fromArray(o.rotation); m.quaternion.normalize(); }
-        grp.add(m);
-    });
-    grp.position.set(x, 0, z);
-    grp.rotation.y = rotY;
-    scene.add(grp);
-    addColliders(grp);
-}
-
-const MODEL_PENCIL = {"format":"gran-3d-scene/v3","objects":[{"shape":"cube","position":[0,1.976847,0],"scale":[0.040214,0.32649,0.039034],"rotation":[0,0,0,1],"color":"#ffb454"},{"shape":"cone","position":[0.007428,2.419174,0.001391],"scale":[0.046576,0.086395,0.047827],"rotation":[0.01896,0,0,0.99982],"color":"#161b29"},{"shape":"cube","position":[0.005964,1.641162,-0.00284],"scale":[0.040214,0.019589,0.039034],"rotation":[0,0,0,1],"color":"#ffffff"}]};
-const MODEL_PEN = {"format":"gran-3d-scene/v3","objects":[{"shape":"cyl","position":[0,1.1,0],"scale":[0.004502,0.418617,0.0036],"rotation":[0,0,0,1],"color":"#161b29"},{"shape":"glass","position":[-0.007805,1.097845,0.004137],"scale":[0.016903,0.347295,0.396187],"rotation":[-0.001715,0.00004,0.002148,0.999996],"color":"#cfeef2"},{"shape":"cone","position":[-0.008697,1.602938,-0.000805],"scale":[0.022709,0.047022,0.024781],"rotation":[0,-0.001962,0,0.999998],"color":"#ffffff"},{"shape":"cube","position":[-0.013793,0.634554,0.005334],"scale":[0.029174,0.021601,0.030171],"rotation":[0,0,0,1],"color":"#4d7cff"}]};
-const MODEL_SOFA = {"format":"gran-3d-scene/v3","objects":[{"shape":"cube","position":[0,0.191576,0],"scale":[0.524374,0.180029,1.522948],"rotation":[0,0,0,1],"color":"#8d5a3b"},{"shape":"cube","position":[0.005013,0.424507,1.317853],"scale":[0.53358,0.413676,0.219817],"rotation":[0,0,0,1],"color":"#8d5a3b"},{"shape":"cube","position":[-0.008536,0.424507,-1.460739],"scale":[0.53358,0.413676,0.219817],"rotation":[0,0,0,1],"color":"#8d5a3b"},{"shape":"cube","position":[-0.52147,0.668945,-0.062625],"scale":[0.668158,0.180029,1.522948],"rotation":[0,0,-0.70884,0.705369],"color":"#8d5a3b"},{"shape":"pillow","position":[0.010548,0.407256,-0.826056],"scale":[0.357271,0.82736,0.341694],"rotation":[0,-0.392181,0,0.919888],"color":"#a8e063"}]};
-const MODEL_PILLOW = {"format":"gran-3d-scene/v3","objects":[{"shape":"pillow","position":[0,0.407256,0],"scale":[1,1,1],"rotation":[0,0,0,1],"color":"#a8e063"}]};
-
-buildModelFromData(MODEL_PENCIL, 150, 150);
-buildModelFromData(MODEL_PEN, -150, 150);
-buildModelFromData(MODEL_SOFA, 100, -150);
-buildModelFromData(MODEL_PILLOW, 102, -148);
-
-function house(x, z, c, r = 0, s = 1) {
-    let g = new THREE.Group();
-    let w = 12*s, h = 6*s, d = 10*s;
-    let wall = mk(B(w,h,d), M(c,.7)); wall.position.y = h/2; g.add(wall);
-    let rh = 3*s, ov = .8*s, slope = Math.sqrt((w/2)**2+rh**2)+ov, ang = Math.atan2(rh,w/2), rm = M(0x8b2020,.6);
-    let p1 = mk(B(slope,.2*s,d+ov*2), rm); p1.position.set(-w/4,h+rh/2,0); p1.rotation.z = ang; g.add(p1);
-    let p2 = mk(B(slope,.2*s,d+ov*2), rm); p2.position.set(w/4,h+rh/2,0); p2.rotation.z = -ang; g.add(p2);
-    let ridge = mk(B(.3*s,.3*s,d+ov*2), M(0x5a3a1a)); ridge.position.y = h+rh; g.add(ridge);
-    let ch = mk(B(s,2.5*s,s), M(0x8a8a8a)); ch.position.set(w*.25,h+rh*.7,-d*.2); g.add(ch);
-    let door = mk(B(2*s,3.5*s,.2), M(0x4a2810,.5)); door.position.set(0,1.75*s,d/2+.05); g.add(door);
-    let knob = mk(new THREE.SphereGeometry(.12*s,8,8), M(0xffd700,.3,1)); knob.position.set(.7*s,1.7*s,d/2+.2); g.add(knob);
-    let step = mk(B(2.6*s,.3*s,1*s), M(0x999999)); step.position.set(0,.15*s,d/2+.6*s); g.add(step);
-    for (let wx of [-3.5*s,3.5*s]) {
-        let f = mk(B(1.9*s,1.9*s,.15*s), M(0xffffff,.5)); f.position.set(wx,3.5*s,d/2+.05); g.add(f);
-        let gl = mk(B(1.5*s,1.5*s,.2*s), M(0x88ccff,.1,.6)); gl.position.set(wx,3.5*s,d/2+.15); g.add(gl);
-    }
-    for (let i = 0; i < 4; i++) {
-        let bu = mk(new THREE.SphereGeometry(.6*s,8,8), M(0x2d6a4f,.9));
-        bu.position.set(-w/2+1+i*(w-2)/3,.5*s,d/2+.8*s); g.add(bu);
-    }
-    g.position.set(x,0,z); g.rotation.y = r; scene.add(g);
-    addColliders(g);
-}
-house(120,120,0xd4a574,0,1.2);
-house(160,140,0xc9876d,.5,1.3);
-house(140,180,0xa8c686,-.5,1.1);
-house(190,160,0xd8b898,.8,1.2);
-house(130,210,0xb89278,0,1.4);
-
-function apartment(x, z, floors, c, r = 0) {
-    let g = new THREE.Group();
-    let w = 16, fH = 3, d = 12, h = floors*fH;
-    let wall = mk(B(w,h,d), M(c,.6)); wall.position.y = h/2; g.add(wall);
-    let par = mk(B(w+1,1,d+1), M(0x333333,.8)); par.position.y = h+.5; g.add(par);
-    let door = mk(B(3,3.5,.2), M(0x222244,.3,.5)); door.position.set(0,1.75,d/2+.05); g.add(door);
-    let canopy = mk(B(5,.2,2), M(0x222222)); canopy.position.set(0,3.6,d/2+1); g.add(canopy);
-    for (let f = 0; f < floors; f++) {
-        for (let wx = 0; wx < 4; wx++) {
-            let frame = mk(B(1.9,1.9,.15), M(0xffffff,.5)); frame.position.set(-6+wx*4,2+f*fH,d/2+.05); g.add(frame);
-            let gl = mk(B(1.5,1.5,.2), M(0x88ccff,.1,.6)); gl.position.set(-6+wx*4,2+f*fH,d/2+.15); g.add(gl);
+        function dbDelete(key) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                tx.objectStore(STORE_NAME).delete(key);
+                tx.oncomplete = () => resolve();
+                tx.onerror = (e) => reject(e.target.error);
+            });
         }
-        if (f > 0) {
-            for (let bx of [-4.5,4.5]) {
-                let bal = mk(B(3,.2,1.5), M(0x999999)); bal.position.set(bx,1+f*fH,d/2+.75); g.add(bal);
-                let rail = mk(B(3,.8,.08), M(0xcccccc,.4,.5)); rail.position.set(bx,1.5+f*fH,d/2+1.4); g.add(rail);
+        function dbGetAll() {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const keysReq = store.getAllKeys();
+                const valsReq = store.getAll();
+                tx.oncomplete = () => {
+                    const result = {};
+                    keysReq.result.forEach((k, i) => { result[k] = valsReq.result[i]; });
+                    resolve(result);
+                };
+                tx.onerror = (e) => reject(e.target.error);
+            });
+        }
+        function dbClear() {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                tx.objectStore(STORE_NAME).clear();
+                tx.oncomplete = () => resolve();
+                tx.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        /* ---------- Инициализация ---------- */
+        async function init() {
+            createButtons();
+            try {
+                await openDB();
+                await loadFromStorage();
+            } catch (e) {
+                console.error(e);
+                showStatus("Ошибка инициализации БД");
             }
         }
-    }
-    for (let i = 0; i < 3; i++) {
-        let ac = mk(B(1,.7,.6), M(0xdddddd,.4,.6)); ac.position.set(w/2+.3,2+i*fH*1.5,-3+i*3); g.add(ac);
-    }
-    g.position.set(x,0,z); g.rotation.y = r; scene.add(g);
-    addColliders(g);
-}
-apartment(-150,120,6,0x9999aa,0);
-apartment(-190,150,9,0xaaaaaa,.3);
-apartment(-160,200,5,0xbb99aa,-.2);
 
-function car(x, z, c, r = 0, parentGroup = null) {
-    let g = new THREE.Group();
-    let paint = M(c,.2,.85), gl = M(0x0e1430,.05,.9), chr = M(0xe8e8e8,.15,1), dk = M(0x151515,.7);
-    let body = mk(B(2,.6,4.6), paint); body.position.y = .75; g.add(body);
-    let hood = mk(B(1.9,.25,1.2), paint); hood.position.set(0,1.1,1.6); hood.rotation.x = -.1; g.add(hood);
-    let trunk = mk(B(1.9,.25,1), paint); trunk.position.set(0,1.1,-1.8); g.add(trunk);
-    let cab = mk(B(1.65,.55,2.2), gl); cab.position.set(0,1.35,-.2); g.add(cab);
-    let roof = mk(B(1.7,.12,2.3), paint); roof.position.set(0,1.68,-.2); g.add(roof);
-    let ws = mk(B(1.6,.7,.08), gl); ws.position.set(0,1.3,.95); ws.rotation.x = -.5; g.add(ws);
-    for (let s of [-1,1]) {
-        let hl = mk(B(.5,.22,.1), M(0xffffee,.2,.5)); hl.material.emissive = new THREE.Color(0xffffaa); hl.material.emissiveIntensity = .6; hl.position.set(s*.62,.9,2.31); g.add(hl);
-        let tl = mk(B(.55,.2,.1), M(0xff3333,.3)); tl.material.emissive = new THREE.Color(0xff0000); tl.material.emissiveIntensity = .6; tl.position.set(s*.65,.93,-2.31); g.add(tl);
-        let mr = mk(B(.28,.18,.12), paint); mr.position.set(s*1.1,1.3,.75); g.add(mr);
-    }
-    let bf = mk(B(2.1,.3,.25), chr); bf.position.set(0,.5,2.35); g.add(bf);
-    let br = mk(B(2.1,.3,.25), chr); br.position.set(0,.5,-2.35); g.add(br);
-    for (let sx of [-1,1]) for (let sz of [-1,1]) {
-        let wg = new THREE.Group(); wg.position.set(sx*.95,.45,sz*1.55);
-        let tire = mk(new THREE.CylinderGeometry(.45,.45,.32,20), dk); tire.rotation.z = Math.PI/2; wg.add(tire);
-        let rim = mk(new THREE.CylinderGeometry(.22,.22,.34,12), chr); rim.rotation.z = Math.PI/2; wg.add(rim);
-        g.add(wg);
-    }
-    g.position.set(x,0,z); g.rotation.y = r; 
-    if (parentGroup) parentGroup.add(g);
-    else scene.add(g);
-    addColliders(g);
-}
-car(60,40,0xcc0000,Math.PI/2);
-car(-60,50,0x2255cc,-Math.PI/2);
-car(20,-60,0xffffff,0);
-car(90,-50,0x22aa44,.5);
-car(-80,70,0xffcc00,-.5);
-
-function farm(x, z) {
-    let g = new THREE.Group();
-    let barn = mk(B(18,8,14), M(0x8B2020,.7)); barn.position.set(-20,4,0); g.add(barn);
-    let rh = 4, ang = Math.atan2(rh,9), rm = M(0x3a2817,.7);
-    let p1 = mk(B(Math.sqrt(81+16)+1,.2,15), rm); p1.position.set(-24,8+rh/2,0); p1.rotation.z = ang; g.add(p1);
-    let p2 = mk(B(Math.sqrt(81+16)+1,.2,15), rm); p2.position.set(-16,8+rh/2,0); p2.rotation.z = -ang; g.add(p2);
-    let bd = mk(B(5,6,.2), M(0x5a3a1a,.6)); bd.position.set(-20,3,7.05); g.add(bd);
-    for (let i = 0; i < 3; i++) { let br = mk(B(5,.3,.1), M(0xffffff)); br.position.set(-20,1.5+i*1.5,7.15); br.rotation.z = i===1?.6:0; g.add(br); }
-    let loft = mk(B(2,2,.2), M(0x88ccff,.1,.6)); loft.position.set(-20,6.5,7.05); g.add(loft);
-    let silo = mk(new THREE.CylinderGeometry(2.5,2.5,14,16), M(0xcccccc,.5,.4)); silo.position.set(15,7,-8); g.add(silo);
-    let dome = mk(new THREE.SphereGeometry(2.5,16,8,0,Math.PI*2,0,Math.PI/2), M(0x888888,.5)); dome.position.set(15,14,-8); g.add(dome);
-    let tr = new THREE.Group();
-    let tb = mk(B(2,1.8,3.5), M(0xffcc00,.6)); tb.position.y = 1.3; tr.add(tb);
-    let cab = mk(B(1.8,1.5,1.8), M(0x88ccff,.1,.5)); cab.position.set(0,2.8,-.3); tr.add(cab);
-    let ex = mk(new THREE.CylinderGeometry(.1,.1,1.5,8), M(0x333333)); ex.position.set(.7,2.6,1); tr.add(ex);
-    for (let s of [-1,1]) {
-        let bw = mk(new THREE.CylinderGeometry(1,1,.5,16), M(0x111111,.9)); bw.rotation.x = Math.PI/2; bw.position.set(s*1.3,1,-1); tr.add(bw);
-        let sw = mk(new THREE.CylinderGeometry(.5,.5,.3,12), M(0x111111,.9)); sw.rotation.x = Math.PI/2; sw.position.set(s*1,.5,1.5); tr.add(sw);
-    }
-    tr.position.set(5,0,8); g.add(tr);
-    for (let i = 0; i < 10; i++) { let po = mk(B(.3,1.5,.3), M(0x8B4513,.8)); po.position.set(-25+i*5,.75,18); g.add(po); }
-    for (let h = 0; h < 2; h++) { let ra = mk(B(50,.12,.15), M(0x8B4513)); ra.position.set(0,.5+h*.6,18); g.add(ra); }
-    let field = mk(new THREE.PlaneGeometry(30,25), M(0xDAA520,.9)); field.rotation.x = -Math.PI/2; field.position.set(25,.07,0); g.add(field);
-    for (let i = 0; i < 3; i++) { let hay = mk(new THREE.CylinderGeometry(1,1,1.4,12), M(0xe8c872,.9)); hay.rotation.z = Math.PI/2; hay.position.set(-5+i*3,1,14); g.add(hay); }
-    let cow = new THREE.Group();
-    let cb = mk(B(2,1.2,1), M(0xffffff,.8)); cb.position.y = 1; cow.add(cb);
-    let chd = mk(B(.6,.6,.6), M(0xffffff,.8)); chd.position.set(1.2,1.5,0); cow.add(chd);
-    for (let s of [-1,1]) for (let q of [-1,1]) { let lg = mk(B(.25,.8,.25), M(0xdddddd)); lg.position.set(q*.8,.4,s*.35); cow.add(lg); }
-    cow.position.set(10,0,-14); g.add(cow);
-    g.position.set(x,0,z); scene.add(g);
-    addColliders(g);
-}
-farm(-250,-200);
-farm(-300,-250);
-
-function plane(x, z, r = 0, parentGroup = null) {
-    let g = new THREE.Group();
-    let body = M(0xffffff,.3,.3), acc = M(0x1e5aa8,.4,.5), gl = M(0x222244,.1,.8);
-    let fus = mk(new THREE.CylinderGeometry(1.2,1.2,14,18), body); fus.rotation.z = Math.PI/2; fus.position.y = 2; g.add(fus);
-    let nose = mk(new THREE.ConeGeometry(1.2,3,18), body); nose.rotation.z = -Math.PI/2; nose.position.set(8.5,2,0); g.add(nose);
-    let cock = mk(B(2,.8,1.6), gl); cock.position.set(6,2.9,0); g.add(cock);
-    let wing = mk(B(7,.25,15), body); wing.position.set(0,1.6,0); wing.rotation.x = .06; g.add(wing);
-    let fin = mk(B(.3,3.5,3), acc); fin.position.set(-6.5,3.8,0); fin.rotation.y = .2; g.add(fin);
-    let stab = mk(B(.3,.25,7), body); stab.position.set(-6.5,3,0); g.add(stab);
-    for (let s of [-1,1]) {
-        let eng = mk(new THREE.CylinderGeometry(.6,.6,2.5,12), M(0x888888,.4,.7)); eng.rotation.z = Math.PI/2; eng.position.set(1,.7,s*3.5); g.add(eng);
-        let stripe = mk(B(14,.3,.05), acc); stripe.position.set(0,2.2,s*1.21); g.add(stripe);
-    }
-    for (let i = 0; i < 8; i++) {
-        let w = mk(B(.1,.4,.4), gl); w.position.set(-3+i,2.6,1.22); g.add(w);
-        let w2 = w.clone(); w2.position.z = -1.22; g.add(w2);
-    }
-    for (let gx of [-2,2]) {
-        let gear = mk(new THREE.CylinderGeometry(.08,.08,1.4,8), M(0x333333)); gear.position.set(gx,.7,0); g.add(gear);
-        let wh = mk(new THREE.CylinderGeometry(.4,.4,.25,12), M(0x111111)); wh.rotation.z = Math.PI/2; wh.position.set(gx,.4,0); g.add(wh);
-    }
-    g.position.set(x,0,z); g.rotation.y = r; 
-    if (parentGroup) parentGroup.add(g);
-    else scene.add(g);
-    addColliders(g);
-}
-
-function airport(cx, cz) {
-    const g = new THREE.Group();
-    
-    const runwayLength = 400;
-    const runwayWidth = 24;
-    const runway = mk(B(runwayLength, 0.15, runwayWidth), M(0x2a2a2a, 0.95));
-    runway.position.set(0, 0.075, 0);
-    g.add(runway);
-    
-    for (let i = -18; i <= 18; i++) {
-        const stripe = mk(B(6, 0.02, 0.8), M(0xffffff, 0.5));
-        stripe.position.set(i * 10, 0.17, 0);
-        g.add(stripe);
-    }
-    const sideLine1 = mk(B(runwayLength, 0.02, 0.4), M(0xffffff, 0.5));
-    sideLine1.position.set(0, 0.17, runwayWidth/2 - 1);
-    g.add(sideLine1);
-    const sideLine2 = mk(B(runwayLength, 0.02, 0.4), M(0xffffff, 0.5));
-    sideLine2.position.set(0, 0.17, -runwayWidth/2 + 1);
-    g.add(sideLine2);
-    
-    for (let i = -3; i <= 3; i++) {
-        const thresh = mk(B(1.5, 0.02, 8), M(0xffffff, 0.5));
-        thresh.position.set(-runwayLength/2 + 10, 0.17, i * 2);
-        g.add(thresh);
-        const thresh2 = mk(B(1.5, 0.02, 8), M(0xffffff, 0.5));
-        thresh2.position.set(runwayLength/2 - 10, 0.17, i * 2);
-        g.add(thresh2);
-    }
-    
-    for (let i = -18; i <= 18; i++) {
-        const light1 = mk(new THREE.SphereGeometry(0.2, 8, 8), M(0xffff00, 0.2));
-        light1.material.emissive = new THREE.Color(0xffff00);
-        light1.material.emissiveIntensity = 1;
-        light1.position.set(i * 10, 0.3, runwayWidth/2 + 0.5);
-        g.add(light1);
-        const light2 = mk(new THREE.SphereGeometry(0.2, 8, 8), M(0xffff00, 0.2));
-        light2.material.emissive = new THREE.Color(0xffff00);
-        light2.material.emissiveIntensity = 1;
-        light2.position.set(i * 10, 0.3, -runwayWidth/2 - 0.5);
-        g.add(light2);
-    }
-    
-    const apron = mk(B(200, 0.12, 40), M(0x555555, 0.9));
-    apron.position.set(0, 0.06, 60); 
-    g.add(apron);
-    
-    for (let i = -2; i <= 2; i++) {
-        const line = mk(B(0.3, 0.02, 16), M(0xffff00, 0.6));
-        line.position.set(i * 40, 0.14, 60);
-        g.add(line);
-    }
-    
-    plane(-80, 60, 0, g);
-    plane(0, 60, 0, g);
-    plane(80, 60, 0, g);
-
-    const apron2 = mk(B(150, 0.12, 30), M(0x555555, 0.9));
-    apron2.position.set(0, 0.06, -60); 
-    g.add(apron2);
-    
-    for (let i = -1; i <= 1; i++) {
-        const line = mk(B(0.3, 0.02, 16), M(0xffff00, 0.6));
-        line.position.set(i * 50, 0.14, -60);
-        g.add(line);
-    }
-    
-    plane(-50, -60, 0, g);
-    plane(50, -60, 0, g);
-    
-    plane(-150, 0, 0, g);  
-    plane(120, 0, 0, g);   
-    
-    function hangar(hx, hz, rotY) {
-        const h = new THREE.Group();
-        const base = mk(B(30, 12, 25), M(0xcccccc, 0.6, 0.3));
-        base.position.y = 6; h.add(base);
-        const roofGeo = new THREE.CylinderGeometry(15, 15, 25, 24, 1, false, 0, Math.PI);
-        const roof = mk(roofGeo, M(0x8b2020, 0.7));
-        roof.rotation.z = Math.PI/2; roof.rotation.y = Math.PI/2; roof.position.y = 12; h.add(roof);
-        const door = mk(B(20, 10, 0.3), M(0x333333, 0.8, 0.4));
-        door.position.set(0, 5, 12.5); h.add(door);
-        for (let i = 0; i < 4; i++) {
-            const stripe = mk(B(20, 0.3, 0.35), M(0xffff00, 0.5));
-            stripe.position.set(0, 1 + i * 2.5, 12.55); h.add(stripe);
-        }
-        for (let i = -2; i <= 2; i++) {
-            const win = mk(B(3, 2, 0.3), M(0x88ccff, 0.1, 0.6));
-            win.position.set(i * 5, 10, 12.55); h.add(win);
-        }
-        for (let i = 0; i < 3; i++) {
-            const win1 = mk(B(0.3, 2, 3), M(0x88ccff, 0.1, 0.6));
-            win1.position.set(15.1, 8, -8 + i * 8); h.add(win1);
-            const win2 = mk(B(0.3, 2, 3), M(0x88ccff, 0.1, 0.6));
-            win2.position.set(-15.1, 8, -8 + i * 8); h.add(win2);
-        }
-        h.position.set(hx, 0, hz); h.rotation.y = rotY;
-        return h;
-    }
-    g.add(hangar(-60, 110, 0));
-    g.add(hangar(60, 110, 0));
-    
-    const tower = new THREE.Group();
-    tower.add(mk(B(8, 4, 8), M(0xdddddd, 0.6)).translateY(2));
-    tower.add(mk(new THREE.CylinderGeometry(3, 4, 18, 12), M(0xcccccc, 0.6, 0.2)).translateY(13));
-    const cabin = mk(new THREE.CylinderGeometry(5, 4, 5, 12), M(0x88ccff, 0.1, 0.7));
-    cabin.material.transparent = true; cabin.material.opacity = 0.6; cabin.position.y = 24.5; tower.add(cabin);
-    tower.add(mk(new THREE.CylinderGeometry(5.5, 5, 1, 12), M(0x333333, 0.7)).translateY(27.5));
-    tower.add(mk(new THREE.CylinderGeometry(0.3, 0.3, 2, 8), M(0x555555, 0.5)).translateY(29));
-    tower.add(mk(new THREE.CylinderGeometry(2, 2, 0.3, 16), M(0xffffff, 0.3, 0.5)).translateY(30.5));
-    tower.add(mk(new THREE.CylinderGeometry(0.1, 0.1, 3, 6), M(0x333333)).translateY(32));
-    for (let i = 0; i < 8; i++) {
-        const angle = (i / 8) * Math.PI * 2;
-        const win = mk(B(1.5, 3, 0.1), M(0xffffaa, 0.3));
-        win.material.emissive = new THREE.Color(0xffff88);
-        win.material.emissiveIntensity = 0.5;
-        win.position.set(Math.cos(angle) * 4.5, 24.5, Math.sin(angle) * 4.5);
-        win.rotation.y = -angle;
-        tower.add(win);
-    }
-    tower.position.set(-100, 0, 110);
-    g.add(tower);
-    
-    const terminal = new THREE.Group();
-    terminal.add(mk(B(60, 8, 20), M(0xe8e8e8, 0.5, 0.2)).translateY(4));
-    const termGlass = mk(B(58, 6, 0.2), M(0x88ccff, 0.1, 0.7));
-    termGlass.material.transparent = true; termGlass.material.opacity = 0.5; termGlass.position.set(0, 5, 10); terminal.add(termGlass);
-    for (let i = -5; i <= 5; i++) {
-        terminal.add(mk(B(0.3, 6, 0.3), M(0x333333, 0.5)).translateX(i * 5).translateY(5).translateZ(10.1));
-    }
-    terminal.add(mk(B(62, 0.5, 22), M(0x444444, 0.7)).translateY(8.25));
-    terminal.add(mk(B(20, 2, 0.3), M(0x1e5aa8, 0.3, 0.5)).translateY(7).translateZ(10.3));
-    for (let i = -1; i <= 1; i++) {
-        terminal.add(mk(B(3, 4, 0.3), M(0x222244, 0.2, 0.6)).translateX(i * 8).translateY(2).translateZ(10.2));
-    }
-    terminal.position.set(0, 0, 140);
-    g.add(terminal);
-    
-    const parking = mk(B(60, 0.1, 30), M(0x3a3a3a, 0.95));
-    parking.position.set(0, 0.05, 180); 
-    g.add(parking);
-    
-    const lineX = [-20, -10, 0, 10, 20];
-    lineX.forEach(x => {
-        const line = mk(B(0.2, 0.02, 16), M(0xffff00, 0.6));
-        line.position.set(x, 0.12, 180);
-        g.add(line);
-    });
-    
-    const carPositions = [-15, -5, 5, 15];
-    const carColors = [0xcc0000, 0x2255cc, 0xffffff, 0x22aa44, 0xffcc00, 0x6633cc];
-    
-    carPositions.forEach((x, i) => {
-        car(x, 180, carColors[i % carColors.length], 0, g);
-    });
-    
-    for (let i = -2; i <= 2; i++) {
-        const lamp = new THREE.Group();
-        const pole = mk(new THREE.CylinderGeometry(0.15, 0.2, 6, 8), M(0x3a3a3a, 0.5, 0.6));
-        pole.position.y = 3; lamp.add(pole);
-        const arm = mk(B(1.5, 0.15, 0.15), M(0x3a3a3a, 0.5, 0.6));
-        arm.position.set(0.75, 5.9, 0); lamp.add(arm);
-        const light = mk(B(0.8, 0.3, 0.5), M(0xfff2b0, 0.3));
-        light.material.emissive = new THREE.Color(0xffe97a);
-        light.material.emissiveIntensity = 0.9;
-        light.position.set(1.5, 5.8, 0); lamp.add(light);
-        lamp.position.set(i * 15, 0, 170);
-        g.add(lamp);
-    }
-    
-    g.position.set(cx, 0, cz);
-    scene.add(g);
-    addColliders(g);
-}
-
-airport(0, -400);
-
-for (let i = 0; i < 80; i++) {
-    let a = Math.random()*6.28, d = 80+Math.random()*420;
-    let x = Math.cos(a)*d, z = Math.sin(a)*d;
-    if (Math.abs(x) < 40 && Math.abs(z) < 40) continue;
-    if (z < -250 && z > -550 && Math.abs(x) < 150) continue;
-    let g = new THREE.Group();
-    let tr = mk(new THREE.CylinderGeometry(.35,.5,3,8), M(0x6b4f3a)); tr.position.y = 1.5; g.add(tr);
-    let lf = mk(new THREE.ConeGeometry(1.8,3,10), M(0x206b3a)); lf.position.y = 4; g.add(lf);
-    g.position.set(x,0,z); scene.add(g);
-    addColliders(g);
-}
-
-function crate(x, z, s) {
-    let g = new THREE.Group();
-    let m = mk(B(s,s,s), M(0xa0722e,.85)); m.position.y = s/2; g.add(m);
-    for (let i of [-.32,.32]) { let e = mk(B(s*1.04,.14*s,s*1.04), M(0x6b4a1f,.8)); e.position.y = s/2+i*s; g.add(e); }
-    g.position.set(x,0,z); scene.add(g); addColliders(g);
-}
-function barrel(x, z, c) {
-    let g = new THREE.Group();
-    let m = mk(new THREE.CylinderGeometry(.5,.5,1.2,12), M(c,.55,.3)); m.position.y = .6; g.add(m);
-    for (let y of [.25,.95]) { let r = mk(new THREE.CylinderGeometry(.52,.52,.08,12), M(0x222222,.6,.4)); r.position.y = y; g.add(r); }
-    g.position.set(x,0,z); scene.add(g); addColliders(g);
-}
-function lamp(x, z) {
-    let g = new THREE.Group();
-    let po = mk(new THREE.CylinderGeometry(.12,.18,5,8), M(0x3a3a3a,.5,.6)); po.position.y = 2.5; g.add(po);
-    let arm = mk(B(1.1,.12,.12), M(0x3a3a3a,.5,.6)); arm.position.set(.5,4.95,0); g.add(arm);
-    let li = mk(B(.55,.22,.32), M(0xfff2b0,.3)); li.material.emissive = new THREE.Color(0xffe97a); li.material.emissiveIntensity = .9; li.position.set(1.02,4.82,0); g.add(li);
-    g.position.set(x,0,z); scene.add(g); addColliders(g);
-}
-function rock(x, z, s) {
-    let g = new THREE.Group();
-    let m = mk(new THREE.DodecahedronGeometry(s,0), M(0x8f8f8f,.95));
-    m.position.y = s*.55;
-    m.rotation.set(Math.random()*3, Math.random()*6, Math.random()*3);
-    g.add(m);
-    g.position.set(x,0,z); scene.add(g); addColliders(g);
-}
-function tower(x, z) {
-    let g = new THREE.Group();
-    for (let i = 0; i < 4; i++) {
-        let a = Math.PI/4+i*Math.PI/2;
-        let leg = mk(new THREE.CylinderGeometry(.16,.22,9,8), M(0x7a3b3b,.65));
-        leg.position.set(Math.cos(a)*2.1,4.5,Math.sin(a)*2.1); g.add(leg);
-    }
-    for (let y of [2,5.5]) { let ring = mk(new THREE.TorusGeometry(2.6,.08,8,20), M(0x7a3b3b,.65)); ring.rotation.x = Math.PI/2; ring.position.y = y; g.add(ring); }
-    let tank = mk(new THREE.CylinderGeometry(2.6,2.6,3.4,16), M(0x5d8aa8,.55,.3)); tank.position.y = 10.4; g.add(tank);
-    let cap = mk(new THREE.ConeGeometry(2.9,1.6,16), M(0x8b2020,.7)); cap.position.y = 12.9; g.add(cap);
-    g.position.set(x,0,z); scene.add(g); addColliders(g);
-}
-function container(x, z, c, r = 0) {
-    let g = new THREE.Group();
-    let m = mk(B(6,2.6,2.4), M(c,.75,.2)); m.position.y = 1.3; g.add(m);
-    for (let i = -2; i <= 2; i++) { let rib = mk(B(.14,2.72,2.5), M(c,.65,.25)); rib.position.x = i*1.2; g.add(rib); }
-    g.position.set(x,0,z); g.rotation.y = r; scene.add(g); addColliders(g);
-}
-
-crate(60,-50,2); crate(65,-52,2); crate(62,-45,1.5);
-crate(-70,-60,2.6); crate(80,60,1.8); crate(-40,-80,2.2);
-barrel(40,-55,0xff6600); barrel(45,-58,0x2266cc); barrel(-50,40,0x33aa55);
-barrel(90,20,0xcc2222); barrel(50,-90,0xffaa00); barrel(-70,-30,0x8844aa);
-lamp(70,30); lamp(-70,30); lamp(30,80); lamp(30,-80);
-lamp(-30,-100); lamp(120,40); lamp(-110,-40); lamp(30,140); lamp(30,-140);
-rock(100,100,1.6); rock(-120,90,2.2); rock(150,-80,1.8);
-rock(-90,-120,1.4); rock(200,60,2.4); rock(-160,-70,1.7);
-rock(250,-40,2.8); rock(-220,50,2);
-tower(-120,-180);
-container(90,-130,0xcc4422,.3); container(85,-140,0x2266aa,.15);
-container(-150,110,0x228855,-.4); container(180,-150,0xccaa22,.6);
-
-const GRAN_DATA = {"format":"gran-3d-scene/v3","objects":[{"shape":"cube","position":[-0.066404,0.059057,0.024143],"scale":[2.818218,0.08846,1],"rotation":[0,0,0,1],"color":"#b7c3da"},{"shape":"cube","position":[-0.007336,1.088426,-0.977371],"scale":[2.818218,0.08846,1],"rotation":[0.716767,-0.002529,-0.002305,0.697304],"color":"#b7c3da"},{"shape":"cube","position":[0.075225,1.129224,1.04329],"scale":[2.818218,0.08846,1],"rotation":[0.716767,-0.002529,-0.002305,0.697304],"color":"#b7c3da"},{"shape":"cube","position":[-2.807134,1.080068,0.00371],"scale":[1.071737,0.08846,1.147701],"rotation":[0.510293,0.503351,-0.493064,0.493078],"color":"#b7c3da"},{"shape":"cube","position":[2.742305,0.95697,-0.033979],"scale":[1.071737,0.08846,1.147701],"rotation":[0.510293,0.503351,-0.493064,0.492919],"color":"#b7c3da"},{"shape":"cube","position":[0.179051,2.085549,-0.000367],"scale":[2.818218,0.08846,1],"rotation":[0.027181,0,0,0.999631],"color":"#b7c3da"},{"shape":"cyl","position":[-1.738495,4.057799,0.02695],"scale":[0.508173,2.777692,0.475228],"rotation":[-0.020098,0.000046,-0.002273,0.999795],"color":"#ffffff"},{"shape":"cyl","position":[-1.71501,3.931836,-0.02267],"scale":[0.622748,0.239843,0.572668],"rotation":[0,0,0,1],"color":"#ff4d4d"},{"shape":"cyl","position":[-1.723125,5.005659,0.0289],"scale":[0.622748,0.239843,0.572668],"rotation":[0,0,0,1],"color":"#ff4d4d"},{"shape":"cyl","position":[-1.7429,6.081192,0.016236],"scale":[0.622748,0.239843,0.572668],"rotation":[0,0,0,1],"color":"#ff4d4d"},{"shape":"cyl","position":[-1.768631,2.877003,0.014387],"scale":[0.622748,0.239843,0.572668],"rotation":[0,0,0,1],"color":"#ff4d4d"},{"shape":"cube","position":[0.029643,0.540026,1.206076],"scale":[2.908097,1.23844,0.751131],"rotation":[0.706672,-0.003749,-0.002809,0.707526],"color":"#b7c3da"},{"shape":"glass","position":[1.786829,1.3,-1.067949],"scale":[0.336012,0.309241,1],"rotation":[0,0,0,1],"color":"#4fd2ff"},{"shape":"glass","position":[0.499798,1.3,-1.115133],"scale":[0.336012,0.309241,1],"rotation":[0,0,0,1],"color":"#4fd2ff"},{"shape":"glass","position":[-0.781789,1.3,-1.089312],"scale":[0.336012,0.309241,1],"rotation":[0,0,0,1],"color":"#4fd2ff"},{"shape":"glass","position":[-2.028142,1.3,-1.082578],"scale":[0.336012,0.309241,1],"rotation":[0,0,0,1],"color":"#4fd2ff"},{"shape":"glass","position":[0.537592,0.658027,2.472248],"scale":[0.336012,0.309241,1],"rotation":[0,0,0,1],"color":"#4fd2ff"},{"shape":"glass","position":[2.027403,0.629059,2.477192],"scale":[0.336012,0.309241,1],"rotation":[0,0,0,1],"color":"#4fd2ff"},{"shape":"glass","position":[-0.824567,0.633431,2.502109],"scale":[0.336012,0.309241,1],"rotation":[0,0,0,1],"color":"#4fd2ff"},{"shape":"glass","position":[-2.047247,0.655963,2.474886],"scale":[0.336012,0.309241,1],"rotation":[0,0,0,1],"color":"#4fd2ff"},{"shape":"cyl","position":[-1.783325,7.223043,-0.029684],"scale":[0.707395,0.322097,0.712338],"rotation":[0,0,0,1],"color":"#ff4d4d"},{"shape":"cone","position":[-1.847644,7.826202,-0.068284],"scale":[0.509605,0.290038,0.569085],"rotation":[0,0,0,1],"color":"#ff4d4d"},{"shape":"cyl","position":[-1.81739,7.483799,-0.030806],"scale":[0.758605,0.090126,0.78444],"rotation":[0,0,0,1],"color":"#ffffff"},{"shape":"cube","position":[-2.909362,0.652081,0.030289],"scale":[0.343898,0.08846,0.568771],"rotation":[0.51013,0.503516,-0.493224,0.492919],"color":"#161b29"},{"shape":"sphere","position":[-2.98729,0.614899,0.248481],"scale":[0.019676,0.030118,0.029694],"rotation":[0,0,0,1],"color":"#4fd2ff"},{"shape":"torus","position":[6.612516,0.843652,-4.199744],"scale":[2.549506,2.627569,3.224584],"rotation":[-0.076081,0.709237,-0.700293,-0.028003],"color":"#8fa0bd"},{"shape":"cyl","position":[6.123373,9.799295,-4.053564],"scale":[1.683116,2.983938,1.668286],"rotation":[-0.006012,0.00822,0.999947,-0.001152],"color":"#8fa0bd"},{"shape":"cyl","position":[6.339014,6.063952,-4.011923],"scale":[1.989509,2.060306,2.054128],"rotation":[-0.006479,0.010508,0.999922,-0.001837],"color":"#8fa0bd"},{"shape":"cyl","position":[6.409611,4.084304,-4.167758],"scale":[2.659503,2.060306,2.884022],"rotation":[-0.007774,-0.009275,0.999887,-0.008948],"color":"#8fa0bd"},{"shape":"torus","position":[6.236144,13.302999,-4.103307],"scale":[1.697104,1.656473,1.171232],"rotation":[0.043145,-0.702902,0.707341,0.061118],"color":"#8fa0bd"},{"shape":"cube","position":[5.479564,1.625712,2.015496],"scale":[2.908097,3.164479,1.740307],"rotation":[0.703592,-0.003507,0.013641,0.710464],"color":"#b7c3da"},{"shape":"cube","position":[5.458419,1.149509,6.989005],"scale":[2.872837,1.968267,1.259168],"rotation":[0.711144,-0.001227,0.012735,0.702929],"color":"#b7c3da"},{"shape":"glass","position":[6.917413,1.3,8.976322],"scale":[1,0.380551,1],"rotation":[0,0,0,1],"color":"#cfeef2"},{"shape":"glass","position":[4.117242,1.3,8.987426],"scale":[1,0.380551,1],"rotation":[0,0,0,1],"color":"#cfeef2"},{"shape":"glass","position":[5.61648,2.880705,5.321594],"scale":[1.997181,0.164379,1],"rotation":[0,0,0,1],"color":"#cfeef2"},{"shape":"cyl","position":[4.050239,5.35745,2.819404],"scale":[0.508173,2.777692,0.475228],"rotation":[-0.020098,0.000046,-0.002273,0.999795],"color":"#ffffff"},{"shape":"cyl","position":[5.221682,6.09359,0.212625],"scale":[0.508173,2.777692,0.475228],"rotation":[-0.020098,0.000046,-0.002273,0.999795],"color":"#ffffff"},{"shape":"cyl","position":[6.599237,6.203541,1.539272],"scale":[0.508173,2.777692,0.475228],"rotation":[-0.020098,0.000046,-0.002273,0.999795],"color":"#ffffff"},{"shape":"cyl","position":[4.066052,4.287212,2.801196],"scale":[0.622748,0.239843,0.572668],"rotation":[0,0,0,1],"color":"#ff4d4d"},{"shape":"cyl","position":[4.032753,5.733667,2.810021],"scale":[0.622748,0.239843,0.572668],"rotation":[0,0,0,1],"color":"#ff4d4d"},{"shape":"cyl","position":[4.021696,6.963853,2.778006],"scale":[0.622748,0.239843,0.572668],"rotation":[0,0,0,1],"color":"#ff4d4d"},{"shape":"cyl","position":[6.661913,6.963853,1.523921],"scale":[0.622748,0.239843,0.572668],"rotation":[0,0,0,1],"color":"#ff4d4d"},{"shape":"cyl","position":[6.611568,8.18733,1.457042],"scale":[0.622748,0.239843,0.572668],"rotation":[0,0,0,1],"color":"#ff4d4d"},{"shape":"cyl","position":[6.618243,5.494739,1.619324],"scale":[0.622748,0.239843,0.572668],"rotation":[0,0,0,1],"color":"#ff4d4d"},{"shape":"cyl","position":[6.546811,4.113048,1.630906],"scale":[0.622748,0.239843,0.572668],"rotation":[0,0,0,1],"color":"#ff4d4d"},{"shape":"cyl","position":[5.18982,6.965064,0.177085],"scale":[0.622748,0.239843,0.572668],"rotation":[0,0,0,1],"color":"#ff4d4d"},{"shape":"cyl","position":[5.191253,8.18733,0.09372],"scale":[0.622748,0.239843,0.572668],"rotation":[0,0,0,1],"color":"#ff4d4d"},{"shape":"cyl","position":[5.187759,5.494739,0.276418],"scale":[0.622748,0.239843,0.572668],"rotation":[0,0,0,1],"color":"#ff4d4d"},{"shape":"cyl","position":[5.226411,4.113048,0.307411],"scale":[0.622748,0.239843,0.572668],"rotation":[0,0,0,1],"color":"#ff4d4d"},{"shape":"cyl","position":[4.103771,7.98335,2.700414],"scale":[0.622748,0.239843,0.572668],"rotation":[0,0,0,1],"color":"#ff4d4d"},{"shape":"sphere","position":[8.421886,1.505905,2.448882],"scale":[0.061833,1,1],"rotation":[0.000297,-0.010896,0.027275,0.999569],"color":"#ffd93d"},{"shape":"cube","position":[8.581786,1.089967,2.049344],"scale":[0.06,0.242874,0.191802],"rotation":[0.31194,0.040626,0.01531,0.949109],"color":"#161b29"},{"shape":"cube","position":[8.48615,2.024602,2.507028],"scale":[0.06,0.242874,0.191802],"rotation":[-0.011031,0.033511,0.027601,0.998996],"color":"#161b29"},{"shape":"cube","position":[8.511502,1.111226,2.938716],"scale":[0.06,0.242874,0.191802],"rotation":[-0.281936,0.024755,0.035665,0.95845],"color":"#161b29"},{"shape":"cube","position":[8.47559,2.367492,2.49349],"scale":[0.06,0.37101,0.191802],"rotation":[0.703857,0.037558,-0.010083,0.709276],"color":"#161b29"},{"shape":"sphere","position":[8.54253,1.527484,2.522812],"scale":[0.061833,0.147092,0.162032],"rotation":[0.003181,-0.116587,0.02709,0.992806],"color":"#161b29"},{"shape":"cube","position":[8.461203,2.152366,2.425013],"scale":[0.06,0.285951,0.197314],"rotation":[-0.230889,0.028389,0.026577,0.972203],"color":"#161b29"},{"shape":"cube","position":[8.456571,2.090343,2.573248],"scale":[0.06,0.239477,0.191802],"rotation":[0.255792,0.037577,0.010013,0.965949],"color":"#161b29"},{"shape":"cube","position":[8.585317,1.097862,1.918832],"scale":[0.06,0.197375,0.191802],"rotation":[0.530646,0.038856,-0.001577,0.846701],"color":"#161b29"},{"shape":"cube","position":[8.579288,0.869847,1.870386],"scale":[0.06,0.37101,0.191802],"rotation":[0.906575,0.031707,-0.022514,0.420249],"color":"#161b29"},{"shape":"cube","position":[8.54108,0.873257,3.08206],"scale":[0.06,0.37101,0.191802],"rotation":[0.478723,0.03888,0.000765,0.877104],"color":"#161b29"},{"shape":"cube","position":[8.523705,1.011989,2.059053],"scale":[0.06,0.229922,0.191802],"rotation":[0.987401,0.013887,-0.036324,-0.153383],"color":"#161b29"},{"shape":"cube","position":[8.55158,1.079993,3.086982],"scale":[0.06,0.244115,0.168296],"rotation":[-0.452261,0.021371,0.032489,0.891038],"color":"#161b29"},{"shape":"cube","position":[8.527323,1.009912,2.851082],"scale":[0.06,0.20513,0.153573],"rotation":[0.047193,0.034635,0.017682,0.998129],"color":"#161b29"}]};
-
-function buildGranFactory(ox, oz) {
-    const grp = new THREE.Group();
-    GRAN_DATA.objects.forEach(o => {
-        const geo = getGeo(o.shape);
-        const mat = getMat(o.shape, o.color);
-        const m = new THREE.Mesh(geo, mat);
-        if (o.position) m.position.fromArray(o.position);
-        if (o.scale) m.scale.fromArray(o.scale);
-        if (o.rotation) { m.quaternion.fromArray(o.rotation); m.quaternion.normalize(); }
-        grp.add(m);
-    });
-    grp.scale.set(4, 4, 4);
-    grp.position.set(ox, 0, oz);
-    scene.add(grp);
-    addColliders(grp);
-}
-buildGranFactory(250, -250);
-
-const DRONE_TYPES = [
-    { id:0, name:"Стандартный", price:0, speed:18, color:0x333333, emoji:"🚁" },
-    { id:1, name:"Красный гоночный", price:50, speed:25, color:0xff2222, emoji:"🔴" },
-    { id:2, name:"Синий спидстер", price:100, speed:30, color:0x2255ff, emoji:"🔵" },
-    { id:3, name:"Золотой люкс", price:200, speed:35, color:0xffd700, emoji:"⭐" },
-    { id:4, name:"Неоновый", price:300, speed:40, color:0xff00ff, emoji:"💜" },
-    { id:5, name:"Ультра", price:500, speed:50, color:0x00ffff, emoji:"⚡" }
-];
-let ownedDrones = JSON.parse(localStorage.getItem("ownedDrones")||"[0]");
-let selectedDrone = parseInt(localStorage.getItem("selectedDrone")||"0");
-let shopPage = 0; const PER_PAGE = 2;
-let totalPages = Math.ceil(DRONE_TYPES.length/PER_PAGE);
-function saveDrones() { localStorage.setItem("ownedDrones",JSON.stringify(ownedDrones)); localStorage.setItem("selectedDrone",selectedDrone.toString()); }
-
-let drone = new THREE.Group(), dAr = [];
-let db = mk(B(1.4,.45,1.6), M(0x333333,.4,.8)); db.position.y = .25; drone.add(db);
-for (let p of [[.8,.8],[-.8,.8],[.8,-.8],[-.8,-.8]]) {
-    let a = mk(new THREE.CylinderGeometry(.09,.12,1.1,8), M(0x333333,.5,.7)); a.position.set(p[0],.25,p[1]); a.rotation.z = Math.PI/2; drone.add(a);
-    let pr = new THREE.Group(); pr.position.set(p[0]*1.55,.55,p[1]*1.55);
-    pr.add(mk(B(.8,.04,.16), M(0xdddddd,.2,.5))); pr.add(mk(B(.16,.04,.8), M(0xdddddd,.2,.5)));
-    drone.add(pr); dAr.push(pr);
-}
-drone.position.set(4,.3,4); 
-drone.visible = false;
-scene.add(drone);
-
-let worldDrone = null;
-let worldDroneAr = [];
-
-function createWorldDrone(x, z, rotY) {
-    if (worldDrone) {
-        scene.remove(worldDrone);
-        worldDrone = null;
-    }
-    
-    const t = DRONE_TYPES[selectedDrone];
-    const wd = new THREE.Group();
-    const wdb = mk(B(1.4,.45,1.6), M(t.color,.4,.8)); 
-    wdb.position.y = .25; 
-    wd.add(wdb);
-    
-    const wAr = [];
-    for (let p of [[.8,.8],[-.8,.8],[.8,-.8],[-.8,-.8]]) {
-        let a = mk(new THREE.CylinderGeometry(.09,.12,1.1,8), M(0x333333,.5,.7)); 
-        a.position.set(p[0],.25,p[1]); 
-        a.rotation.z = Math.PI/2; 
-        wd.add(a);
-        let pr = new THREE.Group(); 
-        pr.position.set(p[0]*1.55,.55,p[1]*1.55);
-        pr.add(mk(B(.8,.04,.16), M(0xdddddd,.2,.5))); 
-        pr.add(mk(B(.16,.04,.8), M(0xdddddd,.2,.5)));
-        wd.add(pr); 
-        wAr.push(pr);
-    }
-    
-    wd.position.set(x, 0.3, z);
-    wd.rotation.y = rotY;
-    scene.add(wd);
-    
-    worldDrone = wd;
-    worldDroneAr = wAr;
-    
-    N("🚁 Дрон вызван!");
-}
-
-function removeWorldDrone() {
-    if (worldDrone) {
-        scene.remove(worldDrone);
-        worldDrone = null;
-        worldDroneAr = [];
-    }
-    $("enterDroneBtn").style.display = "none";
-}
-
-let started=0, isD=0, mx=0, mz=0, dmx=0, dmz=0;
-let cy=0, cp=.4, ty=0, tp=.4;
-let dy=0, dp=0, dty=0, dtp=.3, dh=.3, dSpeed=0;
-let coins=0, droneCd=0, last=performance.now();
-let up=0, down=0, joy=0, djoy=0;
-let jid=null, did=null, jx=0, jy=0, djx=0, djy=0;
-let cam=0, camid=null, cx=0, cyy=0;
-let dcam=0, dcamid=null, dcx=0, dcy=0;
-let vy=0, grounded=1, JUMP_F=9, GRAV=22, currentDroneSpeed=18;
-
-function showD(b) {
-    $("up").style.display = $("down").style.display = $("exit").style.display = b?"flex":"none";
-    $("djoyA").style.display = b?"block":"none"; $("joyA").style.display = b?"none":"block";
-    $("droneBtn").style.display = b?"none":"flex"; $("droneShopBtn").style.display = b?"none":"flex";
-    $("jumpBtn").style.display = b?"none":"flex";
-    if (!b) $("enterDroneBtn").style.display = "none";
-}
-function doJump() { if (!started||isD||!grounded) return; vy = JUMP_F; grounded = 0; }
-function updateDroneVisual() { 
-    let t = DRONE_TYPES[selectedDrone]; 
-    db.material.color.setHex(t.color); 
-    currentDroneSpeed = t.speed; 
-}
-updateDroneVisual();
-
-function renderShopPage() {
-    let grid = $("droneGrid"); grid.innerHTML = "";
-    $("pageInfo").textContent = (shopPage+1)+"/"+totalPages;
-    let s = shopPage*PER_PAGE, e = Math.min(s+PER_PAGE, DRONE_TYPES.length);
-    for (let i = s; i < e; i++) {
-        let t = DRONE_TYPES[i], card = document.createElement("div"); card.className = "droneCard";
-        let owned = ownedDrones.includes(t.id);
-        if (owned) { if (t.id===selectedDrone) card.classList.add("selected"); } else card.classList.add("locked");
-        card.innerHTML = `<div class="droneImg">${t.emoji}</div><div class="droneName">${t.name}</div><div class="dronePrice">${owned?"✓ Куплено":"🪙 "+t.price}</div>${!owned?'<button class="droneBuyBtn">Купить</button>':(t.id===selectedDrone?'<div style="color:#00ff88;font-weight:900;margin-top:6px">✓ ВЫБРАНО</div>':'')}`;
-        if (owned) { card.onclick = () => { selectedDrone=t.id; saveDrones(); updateDroneVisual(); renderShopPage(); N("Выбран: "+t.name); }; }
-        else { let btn = card.querySelector(".droneBuyBtn"); if (btn) btn.onclick = ev => { ev.stopPropagation(); if (coins>=t.price) { coins-=t.price; $("coin").textContent=coins; ownedDrones.push(t.id); selectedDrone=t.id; saveDrones(); updateDroneVisual(); renderShopPage(); N("Куплен: "+t.name); } else N("Недостаточно монет!"); }; }
-        grid.appendChild(card);
-    }
-    $("prevPage").style.opacity = shopPage==0?".3":"1";
-    $("nextPage").style.opacity = shopPage==totalPages-1?".3":"1";
-}
-$("prevPage").onclick = () => { if (shopPage>0) { shopPage--; renderShopPage(); } };
-$("nextPage").onclick = () => { if (shopPage<totalPages-1) { shopPage++; renderShopPage(); } };
-
-$("go").onclick = async () => { 
-    started=1; 
-    initAudio();
-    $("start").style.display="none"; 
-    $("droneBtn").style.display="flex"; 
-    $("droneShopBtn").style.display="flex"; 
-    $("jumpBtn").style.display="flex"; 
-    try { await document.documentElement.requestFullscreen(); } catch(e){} 
-};
-$("droneShopBtn").onclick = e => { e.preventDefault(); e.stopPropagation(); shopPage=0; renderShopPage(); $("droneShopModal").classList.add("show"); };
-$("closeShop").onclick = () => $("droneShopModal").classList.remove("show");
-$("closeShopX").onclick = () => $("droneShopModal").classList.remove("show");
-
-$("droneBtn").onclick = e => {
-    e.preventDefault(); e.stopPropagation();
-    let rem = Math.ceil((droneCd-performance.now())/1000);
-    if (rem>0) { N("🔋 Дрон заряжается: "+rem+"с"); return; }
-    if (worldDrone) { N("🚁 Дрон уже вызван!"); return; }
-    
-    const spawnDist = 3;
-    const spawnX = player.position.x - Math.sin(cy) * spawnDist;
-    const spawnZ = player.position.z - Math.cos(cy) * spawnDist;
-    const spawnRot = cy;
-    
-    createWorldDrone(spawnX, spawnZ, spawnRot);
-};
-
-$("enterDroneBtn").onclick = e => {
-    e.preventDefault(); e.stopPropagation();
-    if (!worldDrone || isD) return;
-    
-    drone.position.copy(worldDrone.position);
-    drone.position.y = 1.5;
-    drone.rotation.y = worldDrone.rotation.y;
-    drone.visible = true;
-    
-    removeWorldDrone();
-    
-    isD = 1;
-    player.visible = false;
-    dh = 1.5;
-    camera.fov = 98;
-    camera.updateProjectionMatrix();
-    showD(1);
-    $("status").textContent = "🚁 FPV дрон";
-    N("FPV: " + DRONE_TYPES[selectedDrone].name);
-};
-
-$("jumpBtn").onpointerdown = e => { e.preventDefault(); doJump(); };
-$("exit").onclick = () => { 
-    isD=0; 
-    player.visible=true; 
-    drone.visible=false; 
-    camera.fov=65; 
-    camera.updateProjectionMatrix(); 
-    showD(0); 
-    $("status").textContent="🚶 Пешком";
-    stopDroneAudio();
-    removeWorldDrone();
-    droneCd = performance.now() + 5000;
-};
-$("up").onpointerdown = e => { e.preventDefault(); up=1; }; $("up").onpointerup = () => up=0;
-$("down").onpointerdown = e => { e.preventDefault(); down=1; }; $("down").onpointerup = () => down=0;
-
-function jMove(e, dr) {
-    let X=dr?djx:jx, Y=dr?djy:jy, dx=e.clientX-X, dy=e.clientY-Y, l=Math.hypot(dx,dy), R=42;
-    if (l>R) { dx=dx/l*R; dy=dy/l*R; }
-    if (dr) { $("dstick").style.transform=`translate3d(${dx}px,${dy}px,0)`; dmx=dx/R; dmz=dy/R; }
-    else { $("stick").style.transform=`translate3d(${dx}px,${dy}px,0)`; mx=dx/R; mz=dy/R; }
-}
-$("joyA").onpointerdown = e => { if (isD) return; joy=1; jid=e.pointerId; jx=e.clientX; jy=e.clientY; $("joy").style.left=jx+"px"; $("joy").style.top=jy+"px"; $("joy").style.display="block"; jMove(e,0); };
-$("djoyA").onpointerdown = e => { if (!isD) return; djoy=1; did=e.pointerId; djx=e.clientX; djy=e.clientY; $("djoy").style.left=djx+"px"; $("djoy").style.top=djy+"px"; $("djoy").style.display="block"; jMove(e,1); };
-
-document.onpointermove = e => {
-    if ($("droneShopModal").classList.contains("show")) return;
-    if (joy&&e.pointerId==jid) jMove(e,0);
-    if (djoy&&e.pointerId==did) jMove(e,1);
-    if (cam&&e.pointerId==camid) { ty-=(e.clientX-cx)*.005; tp=THREE.MathUtils.clamp(tp+(e.clientY-cyy)*.005,-.5,1.2); cx=e.clientX; cyy=e.clientY; }
-    if (dcam&&e.pointerId==dcamid) { dty-=(e.clientX-dcx)*.005; dtp=THREE.MathUtils.clamp(dtp+(e.clientY-dcy)*.005,-1.4,1.4); dcx=e.clientX; dcy=e.clientY; }
-};
-document.onpointerup = e => {
-    if (e.pointerId==jid) { joy=0; mx=mz=0; $("joy").style.display="none"; $("stick").style.transform="translate3d(0,0,0)"; }
-    if (e.pointerId==did) { djoy=0; dmx=dmz=0; $("djoy").style.display="none"; $("dstick").style.transform="translate3d(0,0,0)"; }
-    if (e.pointerId==camid) cam=0; if (e.pointerId==dcamid) dcam=0;
-};
-document.addEventListener("pointerdown", e => {
-    if ($("droneShopModal").classList.contains("show")) return;
-    if (e.clientX<innerWidth*.5||e.target.tagName=="BUTTON"||e.target.className=="skin") return;
-    if (isD) { dcam=1; dcamid=e.pointerId; dcx=e.clientX; dcy=e.clientY; }
-    else { cam=1; camid=e.pointerId; cx=e.clientX; cyy=e.clientY; }
-});
-document.addEventListener("keydown", e => { if (e.code==="Space") doJump(); });
-
-// ============================================================
-//  ИСПРАВЛЕННАЯ ФУНКЦИЯ ДВИЖЕНИЯ ИГРОКА
-//  Баг: Math.atan2 возвращает значения в [-π, π].
-//  Когда текущий угол ~3.1, а целевой ~-3.1 (это почти одно направление!),
-//  lerp заставлял персонажа делать полный полуоборот через 0 → дёрганье.
-//  Решение: нормализуем разницу углов к кратчайшему пути.
-// ============================================================
-function updPlayer(dt) {
-    let x=mx, z=mz, l=Math.hypot(x,z); if (l>1) { x/=l; z/=l; }
-    let mv = Math.abs(x)>.05||Math.abs(z)>.05;
-    if (mv&&grounded) {
-        let f=new THREE.Vector3(-Math.sin(cy),0,-Math.cos(cy)), r=new THREE.Vector3(Math.cos(cy),0,-Math.sin(cy));
-        let dir=new THREE.Vector3().addScaledVector(f,-z).addScaledVector(r,x).normalize();
-        let nx=player.position.x+dir.x*5.7*dt, nz=player.position.z+dir.z*5.7*dt;
-        if (!hitPlayer(nx,nz,.6)) { player.position.x=nx; player.position.z=nz; }
-        
-        // === ИСПРАВЛЕНИЕ ДЁРГАНЬЯ ===
-        // Вычисляем целевой угол и нормализуем разницу к кратчайшему пути [-π, π]
-        let targetAngle = Math.atan2(dir.x, dir.z);
-        let diff = targetAngle - player.rotation.y;
-        // Приводим разницу к диапазону [-π, π]
-        while (diff > Math.PI) diff -= Math.PI * 2;
-        while (diff < -Math.PI) diff += Math.PI * 2;
-        // Плавный поворот по кратчайшему пути
-        player.rotation.y += diff * Math.min(1, dt * 12);
-        
-        let t=performance.now()*.01, sw=Math.sin(t)*.5;
-        arms[0].rotation.x=sw; arms[1].rotation.x=-sw; legs[0].rotation.x=-sw; legs[1].rotation.x=sw;
-    } else if (grounded) { arms.forEach(a=>a.rotation.x*=.85); legs.forEach(l=>l.rotation.x*=.85); }
-    vy-=GRAV*dt; player.position.y+=vy*dt;
-    if (player.position.y<=0) { player.position.y=0; vy=0; grounded=1; } else grounded=0;
-    if (!grounded) {
-        arms[0].rotation.x=THREE.MathUtils.lerp(arms[0].rotation.x,-2.2,dt*8);
-        arms[1].rotation.x=THREE.MathUtils.lerp(arms[1].rotation.x,-2.2,dt*8);
-        legs[0].rotation.x=THREE.MathUtils.lerp(legs[0].rotation.x,.8,dt*8);
-        legs[1].rotation.x=THREE.MathUtils.lerp(legs[1].rotation.x,.8,dt*8);
-    }
-}
-
-function updDrone(dt) {
-    if (up) dh+=5*dt; if (down) dh=Math.max(.4,dh-5*dt);
-    dy=THREE.MathUtils.lerp(dy,dty,1-Math.pow(.001,dt));
-    dp=THREE.MathUtils.lerp(dp,dtp,1-Math.pow(.001,dt));
-    let x=dmx, z=dmz, l=Math.hypot(x,z); if (l>1) { x/=l; z/=l; }
-    let f=new THREE.Vector3(-Math.sin(dy),0,-Math.cos(dy)), r=new THREE.Vector3(Math.cos(dy),0,-Math.sin(dy));
-    let dir=new THREE.Vector3().addScaledVector(f,-z).addScaledVector(r,x);
-    if (dir.length()>.1) {
-        dir.normalize();
-        let nx=drone.position.x+dir.x*currentDroneSpeed*dt, nz=drone.position.z+dir.z*currentDroneSpeed*dt;
-        if (!hitDrone(nx,drone.position.y,nz,.8)) { drone.position.x=nx; drone.position.z=nz; }
-        else { 
-            coins+=5+Math.floor(Math.random()*15); 
-            $("coin").textContent=coins; 
-            N("💥 Врезался! +монеты"); 
-            createExplosion(drone.position.x, drone.position.y, drone.position.z);
-            playExplosionSound();
-            crashDrone(); 
-        }
-    } else dSpeed*=.9;
-    drone.position.y+=Math.sign(dh-drone.position.y)*Math.min(Math.abs(dh-drone.position.y),5*dt);
-    if (hitDrone(drone.position.x,drone.position.y,drone.position.z,.8)) { 
-        coins+=5+Math.floor(Math.random()*15); 
-        $("coin").textContent=coins; 
-        N("💥 Врезался! +монеты"); 
-        createExplosion(drone.position.x, drone.position.y, drone.position.z);
-        playExplosionSound();
-        crashDrone(); 
-    }
-    drone.rotation.y=dy;
-    if (drone.position.y<.35&&dSpeed>6) { 
-        coins+=1+Math.floor(Math.random()*10); 
-        $("coin").textContent=coins; 
-        N("💥 Разбился! +монеты"); 
-        createExplosion(drone.position.x, drone.position.y, drone.position.z);
-        playExplosionSound();
-        crashDrone(); 
-    }
-}
-
-function crashDrone() {
-    drone.position.set(4,.3,4); 
-    drone.visible = false;
-    dh=.3; 
-    isD=0; 
-    player.visible=true; 
-    camera.fov=65; 
-    camera.updateProjectionMatrix(); 
-    showD(0); 
-    $("status").textContent="🚶 Пешком";
-    droneCd=performance.now()+5000;
-    stopDroneAudio();
-    removeWorldDrone();
-}
-
-function camPlayer(dt) {
-    cy=THREE.MathUtils.lerp(cy,ty,1-Math.pow(.002,dt)); cp=THREE.MathUtils.lerp(cp,tp,1-Math.pow(.002,dt));
-    let t=new THREE.Vector3(player.position.x,player.position.y+2.5,player.position.z), dist=7.5;
-    let o=new THREE.Vector3(Math.sin(cy)*dist*Math.cos(cp),3.5+Math.sin(cp)*dist,Math.cos(cy)*dist*Math.cos(cp));
-    camera.position.lerp(t.clone().add(o),1-Math.pow(.0005,dt)); camera.lookAt(t);
-}
-function camDrone(dt) {
-    let t=new THREE.Vector3(drone.position.x,drone.position.y+.5,drone.position.z), dist=5;
-    let o=new THREE.Vector3(Math.sin(dty)*dist*Math.cos(dtp),Math.sin(dtp)*dist,Math.cos(dty)*dist*Math.cos(dtp));
-    
-    if (cameraShake > 0) {
-        const shakeAmt = cameraShake * 0.5;
-        o.x += (Math.random() - 0.5) * shakeAmt;
-        o.y += (Math.random() - 0.5) * shakeAmt;
-        o.z += (Math.random() - 0.5) * shakeAmt;
-    }
-
-    camera.position.lerp(t.clone().add(o),1-Math.pow(.0005,dt)); camera.lookAt(t);
-}
-
-addEventListener("resize", () => { camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); $("hint").style.display=innerWidth>innerHeight?"none":"block"; });
-
-function loop() {
-    requestAnimationFrame(loop);
-    let now=performance.now(), dt=Math.min((now-last)/1000,.05); last=now;
-    if (started) {
-        const followTarget = isD ? drone : player;
-        sun.target.position.set(followTarget.position.x, 0, followTarget.position.z);
-        sun.position.set(followTarget.position.x + 120, 150, followTarget.position.z + 80);
-        sun.target.updateMatrixWorld();
-        
-        if (isD) { 
-            updDrone(dt); 
-            camDrone(dt);
-            
-            const speed = Math.hypot(dmx, dmz);
-            const speedRatio = Math.min(speed, 1);
-            const nearObject = checkProximity(drone.position.x, drone.position.y, drone.position.z);
-            
-            updateDroneAudio(speedRatio, nearObject);
-        }
-        else {
-            updPlayer(dt); 
-            camPlayer(dt);
-            
-            if (worldDrone && !isD) {
-                const dx = player.position.x - worldDrone.position.x;
-                const dz = player.position.z - worldDrone.position.z;
-                const dist = Math.sqrt(dx*dx + dz*dz);
+        function createButtons() {
+            grid.innerHTML = '';
+            for (let i = 1; i <= TOTAL_BUTTONS; i++) {
+                const btn = document.createElement('div'); 
+                btn.className = 'pad-btn';
+                btn.id = `btn-${i}`;
                 
-                if (dist < 3) {
-                    $("enterDroneBtn").style.display = "flex";
+                const num = document.createElement('span');
+                num.className = 'pad-number';
+                num.textContent = i;
+
+                const label = document.createElement('div');
+                label.className = 'pad-label';
+                label.id = `label-${i}`;
+                label.innerHTML = '<span class="empty-label">Пусто</span>';
+
+                const del = document.createElement('div');
+                del.className = 'delete-btn';
+                del.innerHTML = '&times;';
+                del.title = "Удалить трек";
+                del.onclick = (e) => {
+                    e.stopPropagation();
+                    if(confirm("Удалить этот трек?")) deleteSound(i);
+                };
+
+                btn.onclick = () => handleMainClick(i);
+
+                btn.appendChild(num);
+                btn.appendChild(label);
+                btn.appendChild(del);
+                grid.appendChild(btn);
+            }
+        }
+
+        function handleMainClick(index) {
+            if (!soundData[index]) {
+                activeButtonIndex = index;
+                fileInput.click();
+            } else {
+                if (currentPlayingIndex === index && currentAudio && !currentAudio.paused) {
+                    stopPlayback();
+                    showStatus("Остановлено");
                 } else {
-                    $("enterDroneBtn").style.display = "none";
+                    playSound(index);
                 }
             }
-            
-            let rem=Math.ceil((droneCd-now)/1000), b=$("droneBtn");
-            if (rem>0) { 
-                if (b.textContent!=="⏳"+rem) b.textContent="⏳"+rem; 
-                b.style.background="#555"; 
-                b.style.opacity=".65"; 
-            }
-            else if (b.textContent!=="🚁") { 
-                b.textContent="🚁"; 
-                b.style.background="#20c060"; 
-                b.style.opacity="1"; 
+        }
+
+        function playSound(index) {
+            stopPlayback();
+            const data = soundData[index];
+            const btn = document.getElementById(`btn-${index}`);
+
+            currentAudio = new Audio(data.data);
+            currentAudio.crossOrigin = "anonymous";
+            currentPlayingIndex = index;
+
+            btn.classList.add('playing');
+            currentAudio.play().catch(e => console.error("Ошибка воспроизведения", e));
+
+            currentAudio.onended = () => stopPlayback();
+
+            // Перенаправление звука в WebRTC если трансляция активна
+            if (streamActive && streamDest) {
+                try {
+                    const src = audioCtx.createMediaElementSource(currentAudio);
+                    src.connect(streamDest);
+                    src.connect(audioCtx.destination); // чтобы самому слышать
+                } catch (e) {
+                    console.warn("Не удалось подключить к потоку:", e);
+                }
             }
         }
-        updateExplosions(dt);
-        
-        const a = now * .03;
-        if (isD) {
-            dAr.forEach((p,i)=>p.rotation.y=a*(i%2?1:-1));
-        } else if (worldDrone) {
-            worldDroneAr.forEach((p,i)=>p.rotation.y=a*(i%2?1:-1));
+
+        function stopPlayback() {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0; 
+                currentAudio = null;
+            }
+            if (currentPlayingIndex) {
+                const btn = document.getElementById(`btn-${currentPlayingIndex}`);
+                if (btn) btn.classList.remove('playing');
+                currentPlayingIndex = null;
+            }
         }
-    }
-    renderer.render(scene,camera);
-}
-loop();
-$("hint").style.display=innerWidth>innerHeight?"none":"block";
-</script>
+
+        fileInput.addEventListener('change', function(e) {
+            if (!e.target.files.length) return;
+            const file = e.target.files[0];
+            const index = activeButtonIndex;
+            showStatus("Чтение файла...");
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const base64 = event.target.result;
+                const audio = new Audio(base64);
+                audio.onloadedmetadata = function() {
+                    if (audio.duration > MAX_DURATION) {
+                        alert("Слишком длинный файл (максимум 120 минут).");
+                        return;
+                    }
+                    const defaultName = file.name.replace(/\.[^/.]+$/, "");
+                    const customName = prompt("Введи название для кнопки:", defaultName);
+                    if (customName === null) { showStatus("Загрузка отменена"); return; }
+                    const finalName = customName.trim() === "" ? file.name : customName.trim();
+                    soundData[index] = { label: finalName, data: base64 };
+                    updateVisuals(index);
+                    showStatus(`Загружено: "${finalName}". Не забудь Сохранить!`);
+                    fileInput.value = '';
+                };
+            };
+            reader.readAsDataURL(file);
+        });
+
+        async function deleteSound(index) {
+            if (currentPlayingIndex === index) stopPlayback();
+            delete soundData[index];
+            try { await dbDelete(String(index)); } catch (e) { console.error(e); }
+            updateVisuals(index);
+            showStatus("Трек удален");
+        }
+
+        function updateVisuals(index) {
+            const btn = document.getElementById(`btn-${index}`);
+            const label = document.getElementById(`label-${index}`);
+            if (soundData[index]) {
+                btn.classList.add('has-sound');
+                label.textContent = soundData[index].label;
+                label.title = soundData[index].label;
+            } else {
+                btn.classList.remove('has-sound');
+                label.innerHTML = '<span class="empty-label">Пусто</span>';
+                label.title = "";
+            }
+        }
+
+        async function saveProgress() {
+            try {
+                const keys = Object.keys(soundData);
+                for (const k of keys) await dbPut(k, soundData[k]);
+                showStatus("Сохранено успешно!");
+            } catch (e) {
+                alert("Ошибка сохранения: " + e.message);
+            }
+        }
+
+        async function loadFromStorage() {
+            try {
+                const saved = await dbGetAll();
+                soundData = saved || {};
+                for (let i = 1; i <= TOTAL_BUTTONS; i++) updateVisuals(i);
+                if (Object.keys(soundData).length) showStatus("Прогресс загружен");
+            } catch (e) { console.error(e); }
+        }
+
+        async function clearAll() {
+            if (confirm("Полностью очистить саундпак?")) {
+                stopPlayback();
+                soundData = {};
+                try { await dbClear(); } catch (e) { console.error(e); }
+                for (let i = 1; i <= TOTAL_BUTTONS; i++) updateVisuals(i);
+                showStatus("Очищено");
+            }
+        }
+
+        function showStatus(text) {
+            statusMsg.textContent = text;
+            setTimeout(() => { if (statusMsg.textContent === text) statusMsg.textContent = ""; }, 3000);
+        }
+
+        /* =========================================================
+           WEBRTC ТРАНСЛЯЦИЯ через PeerJS
+           ========================================================= */
+        let peer = null;
+        let call = null;
+        let streamDest = null;
+        let audioCtx = null;
+        let streamActive = false;
+        let isHost = false;
+
+        function toggleStream() {
+            const panel = document.getElementById('streamPanel');
+            if (panel.classList.contains('visible')) {
+                panel.classList.remove('visible');
+                stopStream();
+            } else {
+                panel.classList.add('visible');
+                document.getElementById('modeSelector').style.display = 'block';
+                document.getElementById('hostView').style.display = 'none';
+                document.getElementById('guestView').style.display = 'none';
+            }
+        }
+
+        function randomCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+            return code;
+        }
+
+        function startHost() {
+            isHost = true;
+            const code = randomCode();
+            document.getElementById('modeSelector').style.display = 'none';
+            document.getElementById('hostView').style.display = 'block';
+            document.getElementById('roomCode').textContent = code;
+            document.getElementById('hostStatus').textContent = 'Подключение к серверу...';
+
+            // Инициализация аудиоконтекста для перехвата звука
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (!streamDest) streamDest = audioCtx.createMediaStreamDestination();
+            streamActive = true;
+
+            peer = new Peer('sp42-' + code, { debug: 1 });
+
+            peer.on('open', (id) => {
+                document.getElementById('hostStatus').textContent = '✅ Комната готова. Отправь код другу.';
+                document.getElementById('streamBtn').classList.add('active');
+                document.getElementById('streamBtn').textContent = '⏹ Остановить трансляцию';
+            });
+
+            peer.on('call', (incoming) => {
+                call = incoming;
+                call.answer(streamDest.stream);
+                document.getElementById('hostStatus').textContent = '🎧 Друг подключился и слушает!';
+                call.on('close', () => {
+                    document.getElementById('hostStatus').textContent = 'Друг отключился. Ждём...';
+                });
+            });
+
+            peer.on('error', (err) => {
+                console.error(err);
+                document.getElementById('hostStatus').textContent = '❌ Ошибка: ' + err.type;
+            });
+        }
+
+        function showGuest() {
+            document.getElementById('modeSelector').style.display = 'none';
+            document.getElementById('guestView').style.display = 'block';
+        }
+
+        function joinRoom() {
+            const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+            if (code.length !== 6) { alert("Код должен содержать 6 символов"); return; }
+
+            document.getElementById('guestStatus').textContent = 'Подключение...';
+            peer = new Peer({ debug: 1 });
+
+            peer.on('open', () => {
+                call = peer.call('sp42-' + code, new MediaStream());
+                if (!call) {
+                    document.getElementById('guestStatus').textContent = '❌ Не удалось подключиться';
+                    return;
+                }
+
+                call.on('stream', (remoteStream) => {
+                    const audio = document.getElementById('remoteAudio') || document.createElement('audio');
+                    audio.id = 'remoteAudio';
+                    audio.srcObject = remoteStream;
+                    audio.autoplay = true;
+                    document.body.appendChild(audio);
+                    document.getElementById('guestStatus').textContent = '🎵 Слушаешь музыку друга!';
+                    document.getElementById('streamBtn').classList.add('active');
+                    document.getElementById('streamBtn').textContent = '⏹ Отключиться';
+                });
+
+                call.on('close', () => {
+                    document.getElementById('guestStatus').textContent = 'Соединение закрыто';
+                });
+
+                call.on('error', (err) => {
+                    document.getElementById('guestStatus').textContent = '❌ Ошибка: ' + err;
+                });
+            });
+
+            peer.on('error', (err) => {
+                console.error(err);
+                document.getElementById('guestStatus').textContent = '❌ ' + (err.type === 'peer-unavailable' ? 'Комната не найдена' : err.type);
+            });
+        }
+
+        function stopStream() {
+            streamActive = false;
+            if (call) { try { call.close(); } catch(e){} call = null; }
+            if (peer) { try { peer.destroy(); } catch(e){} peer = null; }
+            const remote = document.getElementById('remoteAudio');
+            if (remote) remote.remove();
+            document.getElementById('streamBtn').classList.remove('active');
+            document.getElementById('streamBtn').textContent = '🔊 Создать комнату';
+            document.getElementById('modeSelector').style.display = 'block';
+            document.getElementById('hostView').style.display = 'none';
+            document.getElementById('guestView').style.display = 'none';
+        }
+
+        function copyRoomCode() {
+            const code = document.getElementById('roomCode').textContent;
+            navigator.clipboard.writeText(code).then(() => showStatus("Код скопирован!"));
+        }
+
+        function copyRoomLink() {
+            const code = document.getElementById('roomCode').textContent;
+            const link = location.origin + location.pathname + '?join=' + code;
+            navigator.clipboard.writeText(link).then(() => showStatus("Ссылка скопирована!"));
+        }
+
+        // Автовход по ссылке ?join=XXXXXX
+        window.addEventListener('load', () => {
+            const params = new URLSearchParams(location.search);
+            const joinCode = params.get('join');
+            if (joinCode) {
+                document.getElementById('streamPanel').classList.add('visible');
+                showGuest();
+                document.getElementById('joinCodeInput').value = joinCode.toUpperCase();
+                setTimeout(joinRoom, 500);
+            }
+        });
+
+        init();
+    </script>
 </body>
-    </html>
+</html>
