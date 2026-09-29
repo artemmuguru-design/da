@@ -1,620 +1,749 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SoundPad 42 + Трансляция</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #121212;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px 0;
-            user-select: none;
-        }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Плоский мир — как в Minecraft (телефон + ПК)</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; height:100%; overflow:hidden; background:#8ec6ff;
+               font-family:"Segoe UI", Arial, sans-serif; touch-action:none; }
+  canvas { display:block; }
 
-        h1 { margin-bottom: 5px; font-weight: 400; }
-        
-        .hint {
-            color: #666;
-            font-size: 0.8rem;
-            margin-bottom: 15px;
-            text-align: center;
-        }
+  /* Прицел */
+  #crosshair { position:fixed; left:50%; top:50%; width:22px; height:22px; margin:-11px 0 0 -11px;
+               pointer-events:none; z-index:5; }
+  #crosshair::before, #crosshair::after { content:''; position:absolute; background:#fff; mix-blend-mode:difference; }
+  #crosshair::before { left:10px; top:0; width:2px; height:22px; }
+  #crosshair::after  { top:10px; left:0; height:2px; width:22px; }
 
-        .controls { margin-bottom: 10px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  /* Стартовый экран */
+  #overlay { position:fixed; inset:0; z-index:20; display:flex; align-items:center; justify-content:center;
+             background:rgba(0,0,0,.7); color:#fff; cursor:pointer; text-align:center; padding:16px; }
+  #overlay .card { max-width:560px; padding:22px 26px; border:2px solid rgba(255,255,255,.35);
+                   border-radius:10px; background:rgba(0,0,0,.4); }
+  #overlay h1 { margin:0 0 14px; font-size:24px; letter-spacing:2px; }
+  #overlay p { margin:6px 0; font-size:14px; line-height:1.6; color:#d8e6ff; }
+  kbd { background:#fff; color:#111; border-radius:4px; padding:1px 6px; font-family:inherit; font-size:12px; }
+  #overlay .touch-info { display:none; }
+  @media (pointer:coarse) {
+    #overlay .pc-info { display:none; }
+    #overlay .touch-info { display:block; }
+  }
 
-        button.save-btn {
-            padding: 8px 16px;
-            background: #333;
-            border: 1px solid #555;
-            color: #fff;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button.save-btn:hover { background: #444; }
-        button.stream-btn { background: #1565c0; border-color: #1976d2; }
-        button.stream-btn:hover { background: #1976d2; }
-        button.stream-btn.active { background: #c62828; border-color: #e53935; }
+  /* ===== Мобильное управление ===== */
+  #mobile-ui { position:fixed; inset:0; z-index:6; pointer-events:none; display:none; }
+  body.touch #mobile-ui { display:block; }
 
-        .status-msg { height: 20px; font-size: 0.9rem; color: #4caf50; margin-bottom: 10px; text-align: center; }
+  /* Джойстик */
+  #joy-zone { position:absolute; left:0; bottom:0; width:45%; height:55%; pointer-events:auto; }
+  #joy-base { position:absolute; left:20px; bottom:20px; width:130px; height:130px; border-radius:50%;
+              background:rgba(255,255,255,.15); border:2px solid rgba(255,255,255,.4);
+              opacity:.65; transition:opacity .15s; }
+  #joy-knob { position:absolute; left:50%; top:50%; width:58px; height:58px; margin:-29px 0 0 -29px;
+              border-radius:50%; background:rgba(255,255,255,.55); border:2px solid #fff; }
 
-        .stream-panel {
-            display: none;
-            background: #1e1e1e;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
-            max-width: 700px;
-            width: 90%;
-            border: 1px solid #333;
-        }
-        .stream-panel.visible { display: block; }
-        .stream-panel h3 { margin: 0 0 10px 0; font-weight: 400; font-size: 1rem; color: #4caf50; }
-        .stream-panel input {
-            padding: 8px;
-            background: #2a2a2a;
-            border: 1px solid #444;
-            color: #fff;
-            border-radius: 5px;
-            font-size: 1rem;
-            width: 60%;
-            margin-right: 8px;
-        }
-        .stream-panel button {
-            padding: 8px 14px;
-            background: #333;
-            border: 1px solid #555;
-            color: #fff;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .stream-panel button:hover { background: #444; }
-        .room-code {
-            font-family: monospace;
-            font-size: 1.4rem;
-            color: #4caf50;
-            letter-spacing: 3px;
-            user-select: all;
-            margin: 8px 0;
-        }
-        .conn-status {
-            font-size: 0.85rem;
-            color: #888;
-            margin-top: 8px;
-        }
+  /* Кнопки действий */
+  .btn { position:absolute; pointer-events:auto; display:flex; align-items:center; justify-content:center;
+         color:#fff; font-size:13px; font-weight:600; text-shadow:1px 1px 0 rgba(0,0,0,.6);
+         background:rgba(0,0,0,.4); border:2px solid rgba(255,255,255,.5); border-radius:50%;
+         user-select:none; }
+  .btn:active, .btn.pressed { background:rgba(255,255,255,.35); }
+  #btn-jump  { right:20px; bottom:130px; width:80px; height:80px; }
+  #btn-break { right:120px; bottom:35px; width:74px; height:74px; }
+  #btn-place { right:25px; bottom:35px; width:74px; height:74px; }
 
-        /* Сетка */
-        .pad-grid {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 12px;
-            max-width: 800px;
-            width: 95%;
-            padding: 20px;
-            background: #1e1e1e;
-            border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-        }
+  /* Хотбар */
+  #hotbar { position:absolute; left:50%; bottom:10px; transform:translateX(-50%);
+            display:flex; gap:6px; pointer-events:auto; }
+  .slot { width:56px; height:44px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+          border:2px solid rgba(255,255,255,.45); background:rgba(0,0,0,.4);
+          border-radius:6px; font-size:10px; color:#fff; text-shadow:1px 1px 0 rgba(0,0,0,.6);
+          user-select:none; }
+  .slot.active { border-color:#fff; background:rgba(255,255,255,.3); }
+  .slot .sw { width:20px; height:20px; border-radius:3px; border:1px solid rgba(0,0,0,.4); margin-bottom:2px; }
 
-        .pad-btn {
-            aspect-ratio: 1;
-            position: relative;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: transform 0.1s, background 0.3s;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 5px;
-            background: #2a2a2a;
-            color: #555;
-            box-shadow: inset 0 0 5px #000;
-        }
-
-        .pad-btn.has-sound {
-            background: linear-gradient(145deg, #2e7d32, #1b5e20);
-            color: #fff;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-
-        .pad-btn.playing {
-            background: linear-gradient(145deg, #4caf50, #2e7d32) !important;
-            box-shadow: 0 0 15px rgba(76, 175, 80, 0.6);
-            transform: scale(0.98);
-        }
-
-        .pad-number {
-            position: absolute;
-            top: 4px; left: 6px;
-            font-size: 0.7rem;
-            opacity: 0.6;
-        }
-
-        .pad-label {
-            font-size: 0.8rem;
-            font-weight: bold;
-            text-align: center;
-            word-wrap: break-word;
-            max-width: 100%;
-            z-index: 2;
-            pointer-events: none;
-            line-height: 1.1;
-        }
-
-        .empty-label { font-size: 0.65rem; opacity: 0.4; }
-
-        .delete-btn {
-            position: absolute;
-            top: 3px; right: 3px;
-            width: 18px; height: 18px;
-            background: rgba(0,0,0,0.4);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            color: #fff;
-            cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.2s;
-            z-index: 10;
-        }
-
-        .pad-btn:hover .delete-btn { opacity: 1; }
-        .delete-btn:hover { background: #d32f2f; }
-
-        #fileInput { display: none; }
-
-        @media (max-width: 600px) {
-            .pad-grid { grid-template-columns: repeat(4, 1fr); }
-            .stream-panel input { width: 100%; margin-bottom: 8px; }
-        }
-    </style>
+  #hud { position:fixed; left:12px; top:12px; z-index:5; color:#fff;
+         text-shadow:2px 2px 0 rgba(0,0,0,.7); font-size:12px; pointer-events:none; }
+</style>
 </head>
 <body>
 
-    <h1>SoundPad 42</h1>
-    <div class="hint">Нажми на пустую кнопку, чтобы загрузить звук.<br>Нажми на играющую, чтобы остановить.</div>
-    
-    <div class="controls">
-        <button class="save-btn" onclick="saveProgress()">💾 Сохранить</button>
-        <button class="save-btn" onclick="clearAll()">🗑️ Сброс</button>
-        <button class="save-btn stream-btn" id="streamBtn" onclick="toggleStream()">🔊 Создать комнату</button>
+<div id="crosshair"></div>
+<div id="hud">Плоский мир</div>
+
+<!-- ===== Мобильное управление ===== -->
+<div id="mobile-ui">
+  <div id="joy-zone">
+    <div id="joy-base"><div id="joy-knob"></div></div>
+  </div>
+  <div class="btn" id="btn-jump">Прыжок</div>
+  <div class="btn" id="btn-break">Копать</div>
+  <div class="btn" id="btn-place">Ставить</div>
+  <div id="hotbar"></div>
+</div>
+
+<!-- ===== Стартовый экран ===== -->
+<div id="overlay">
+  <div class="card">
+    <h1>ПЛОСКИЙ МИР</h1>
+    <div class="pc-info">
+      <p><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> — ходьба · <kbd>Space</kbd> — прыжок · <kbd>Shift</kbd> — бег</p>
+      <p><kbd>ЛКМ</kbd> — сломать блок · <kbd>ПКМ</kbd> — поставить блок</p>
+      <p><kbd>1</kbd>–<kbd>5</kbd> — выбрать блок · <kbd>Esc</kbd> — пауза</p>
     </div>
-    <div class="status-msg" id="statusMsg"></div>
-
-    <div class="stream-panel" id="streamPanel">
-        <div id="hostView" style="display:none;">
-            <h3>🎙️ Трансляция активна — отправь код другу:</h3>
-            <div class="room-code" id="roomCode">------</div>
-            <button onclick="copyRoomCode()">📋 Копировать код</button>
-            <button onclick="copyRoomLink()">🔗 Копировать ссылку</button>
-            <div class="conn-status" id="hostStatus">Ожидание подключения...</div>
-        </div>
-        <div id="guestView" style="display:none;">
-            <h3>🎧 Присоединиться к комнате:</h3>
-            <input type="text" id="joinCodeInput" placeholder="Введи код (6 символов)" maxlength="6">
-            <button onclick="joinRoom()">Подключиться</button>
-            <div class="conn-status" id="guestStatus">Не подключено</div>
-        </div>
-        <div id="modeSelector">
-            <h3>Выбери режим:</h3>
-            <button onclick="startHost()">🎙️ Я транслирую музыку</button>
-            <button onclick="showGuest()">🎧 Я слушаю друга</button>
-        </div>
+    <div class="touch-info">
+      <p>Слева — <b>джойстик</b> для ходьбы</p>
+      <p>Свайп по экрану — <b>поворот камеры</b></p>
+      <p>Кнопки <b>«Копать»</b>, <b>«Ставить»</b>, <b>«Прыжок»</b> — справа</p>
+      <p>Тап по <b>хотбару</b> внизу — выбор блока</p>
     </div>
+    <p style="margin-top:16px; font-size:16px; color:#fff;">Нажми, чтобы играть</p>
+  </div>
+</div>
 
-    <div class="pad-grid" id="grid"></div>
-    <input type="file" id="fileInput" accept="audio/*">
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
 
-    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-    <script>
-        const grid = document.getElementById('grid');
-        const fileInput = document.getElementById('fileInput');
-        const statusMsg = document.getElementById('statusMsg');
-        const MAX_DURATION = 7200;
-        const TOTAL_BUTTONS = 42;
+<script type="module">
+import * as THREE from 'three';
 
-        let soundData = {}; 
-        let activeButtonIndex = null;
-        let currentAudio = null; 
-        let currentPlayingIndex = null; 
+/* ============================================================
+   1. ПРОЦЕДУРНЫЙ АТЛАС ТЕКСТУР (16×16 пикселей)
+   ============================================================ */
+const TILE = 16, COLS = 4, ROWS = 4;
+const atlasCanvas = document.createElement('canvas');
+atlasCanvas.width  = TILE * COLS;
+atlasCanvas.height = TILE * ROWS;
+const ctx = atlasCanvas.getContext('2d');
 
-        /* ---------- IndexedDB ---------- */
-        const DB_NAME = 'SoundPadDB';
-        const DB_VERSION = 1;
-        const STORE_NAME = 'sounds';
-        let db = null;
+const clamp255 = v => Math.max(0, Math.min(255, Math.round(v)));
+const shade = (base, d) => `rgb(${clamp255(base[0]+d)},${clamp255(base[1]+d)},${clamp255(base[2]+d)})`;
 
-        function openDB() {
-            return new Promise((resolve, reject) => {
-                const req = indexedDB.open(DB_NAME, DB_VERSION);
-                req.onupgradeneeded = (e) => {
-                    const d = e.target.result;
-                    if (!d.objectStoreNames.contains(STORE_NAME)) d.createObjectStore(STORE_NAME);
-                };
-                req.onsuccess = (e) => { db = e.target.result; resolve(db); };
-                req.onerror = (e) => reject(e.target.error);
-            });
-        }
-        function dbPut(key, value) {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(STORE_NAME, 'readwrite');
-                tx.objectStore(STORE_NAME).put(value, key);
-                tx.oncomplete = () => resolve();
-                tx.onerror = (e) => reject(e.target.error);
-            });
-        }
-        function dbDelete(key) {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(STORE_NAME, 'readwrite');
-                tx.objectStore(STORE_NAME).delete(key);
-                tx.oncomplete = () => resolve();
-                tx.onerror = (e) => reject(e.target.error);
-            });
-        }
-        function dbGetAll() {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(STORE_NAME, 'readonly');
-                const store = tx.objectStore(STORE_NAME);
-                const keysReq = store.getAllKeys();
-                const valsReq = store.getAll();
-                tx.oncomplete = () => {
-                    const result = {};
-                    keysReq.result.forEach((k, i) => { result[k] = valsReq.result[i]; });
-                    resolve(result);
-                };
-                tx.onerror = (e) => reject(e.target.error);
-            });
-        }
-        function dbClear() {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(STORE_NAME, 'readwrite');
-                tx.objectStore(STORE_NAME).clear();
-                tx.oncomplete = () => resolve();
-                tx.onerror = (e) => reject(e.target.error);
-            });
-        }
+function noiseTile(col, row, base, spread) {
+  for (let y = 0; y < TILE; y++)
+    for (let x = 0; x < TILE; x++) {
+      ctx.fillStyle = shade(base, (Math.random() - 0.5) * spread);
+      ctx.fillRect(col * TILE + x, row * TILE + y, 1, 1);
+    }
+}
 
-        /* ---------- Инициализация ---------- */
-        async function init() {
-            createButtons();
-            try {
-                await openDB();
-                await loadFromStorage();
-            } catch (e) {
-                console.error(e);
-                showStatus("Ошибка инициализации БД");
-            }
-        }
+const GRASS = [106, 170, 64];
+const DIRT  = [134, 96, 67];
+const STONE = [130, 130, 130];
+const WOOD  = [104, 82, 50];
+const LEAF  = [56, 110, 38];
+const BED   = [72, 72, 72];
 
-        function createButtons() {
-            grid.innerHTML = '';
-            for (let i = 1; i <= TOTAL_BUTTONS; i++) {
-                const btn = document.createElement('div'); 
-                btn.className = 'pad-btn';
-                btn.id = `btn-${i}`;
-                
-                const num = document.createElement('span');
-                num.className = 'pad-number';
-                num.textContent = i;
+noiseTile(0, 0, GRASS, 46);   // верх травы
+noiseTile(2, 0, DIRT, 40);    // земля
+noiseTile(3, 0, STONE, 38);   // камень
 
-                const label = document.createElement('div');
-                label.className = 'pad-label';
-                label.id = `label-${i}`;
-                label.innerHTML = '<span class="empty-label">Пусто</span>';
+// бок травы
+noiseTile(1, 0, DIRT, 40);
+for (let x = 0; x < TILE; x++) {
+  const h = 3 + (Math.random() < 0.5 ? 0 : 1);
+  for (let y = 0; y < h; y++) {
+    ctx.fillStyle = shade(GRASS, (Math.random() - 0.5) * 46);
+    ctx.fillRect(TILE + x, y, 1, 1);
+  }
+}
 
-                const del = document.createElement('div');
-                del.className = 'delete-btn';
-                del.innerHTML = '&times;';
-                del.title = "Удалить трек";
-                del.onclick = (e) => {
-                    e.stopPropagation();
-                    if(confirm("Удалить этот трек?")) deleteSound(i);
-                };
+// бок бревна
+for (let x = 0; x < TILE; x++) {
+  const base = WOOD.map(v => v + (Math.random() - 0.5) * 28);
+  for (let y = 0; y < TILE; y++) {
+    ctx.fillStyle = shade(base, (Math.random() - 0.5) * 18);
+    ctx.fillRect(x, TILE + y, 1, 1);
+  }
+}
 
-                btn.onclick = () => handleMainClick(i);
+// спил бревна
+for (let y = 0; y < TILE; y++)
+  for (let x = 0; x < TILE; x++) {
+    const d = Math.max(Math.abs(x - 7.5), Math.abs(y - 7.5));
+    const ring = Math.floor(d) % 2 === 0 ? 20 : -20;
+    ctx.fillStyle = shade(WOOD, ring + (Math.random() - 0.5) * 16);
+    ctx.fillRect(TILE + x, TILE + y, 1, 1);
+  }
 
-                btn.appendChild(num);
-                btn.appendChild(label);
-                btn.appendChild(del);
-                grid.appendChild(btn);
-            }
-        }
+// листва
+for (let y = 0; y < TILE; y++)
+  for (let x = 0; x < TILE; x++) {
+    const r = Math.random();
+    const d = r < 0.22 ? -30 : (r < 0.42 ? 28 : 0);
+    ctx.fillStyle = shade(LEAF, d + (Math.random() - 0.5) * 22);
+    ctx.fillRect(2 * TILE + x, TILE + y, 1, 1);
+  }
 
-        function handleMainClick(index) {
-            if (!soundData[index]) {
-                activeButtonIndex = index;
-                fileInput.click();
-            } else {
-                if (currentPlayingIndex === index && currentAudio && !currentAudio.paused) {
-                    stopPlayback();
-                    showStatus("Остановлено");
-                } else {
-                    playSound(index);
-                }
-            }
-        }
+// бедрок
+for (let y = 0; y < TILE; y++)
+  for (let x = 0; x < TILE; x++) {
+    ctx.fillStyle = shade(BED, (Math.random() - 0.5) * 74);
+    ctx.fillRect(3 * TILE + x, TILE + y, 1, 1);
+  }
 
-        function playSound(index) {
-            stopPlayback();
-            const data = soundData[index];
-            const btn = document.getElementById(`btn-${index}`);
+const atlasTex = new THREE.CanvasTexture(atlasCanvas);
+atlasTex.magFilter = THREE.NearestFilter;
+atlasTex.minFilter = THREE.NearestFilter;
+atlasTex.generateMipmaps = false;
+atlasTex.colorSpace = THREE.SRGBColorSpace;
 
-            currentAudio = new Audio(data.data);
-            currentAudio.crossOrigin = "anonymous";
-            currentPlayingIndex = index;
+/* ============================================================
+   2. ОПИСАНИЕ БЛОКОВ
+   ============================================================ */
+const T = {
+  grass_top:  [0, 0], grass_side: [1, 0], dirt: [2, 0], stone: [3, 0],
+  log_side:   [0, 1], log_top:    [1, 1], leaves: [2, 1], bedrock: [3, 1]
+};
+const S = t => [t, t, t, t, t, t];
 
-            btn.classList.add('playing');
-            currentAudio.play().catch(e => console.error("Ошибка воспроизведения", e));
+const BLOCKS = {
+  grass:   { tiles: [T.grass_side, T.grass_side, T.grass_top, T.dirt, T.grass_side, T.grass_side] },
+  dirt:    { tiles: S(T.dirt) },
+  stone:   { tiles: S(T.stone) },
+  log:     { tiles: [T.log_side, T.log_side, T.log_top, T.log_top, T.log_side, T.log_side] },
+  leaves:  { tiles: S(T.leaves) },
+  bedrock: { tiles: S(T.bedrock) }
+};
 
-            currentAudio.onended = () => stopPlayback();
+function makeBlockGeometry(faceTiles) {
+  const geo = new THREE.BoxGeometry(1, 1, 1);
+  const uv = geo.attributes.uv;
+  const N = COLS, M = ROWS;
+  for (let f = 0; f < 6; f++) {
+    const [c, r] = faceTiles[f];
+    for (let i = 0; i < 4; i++) {
+      const idx = f * 4 + i;
+      const u = uv.getX(idx), v = uv.getY(idx);
+      uv.setXY(idx, (c + u) / N, (M - 1 - r + v) / M);
+    }
+  }
+  uv.needsUpdate = true;
+  return geo;
+}
 
-            // Перенаправление звука в WebRTC если трансляция активна
-            if (streamActive && streamDest) {
-                try {
-                    const src = audioCtx.createMediaElementSource(currentAudio);
-                    src.connect(streamDest);
-                    src.connect(audioCtx.destination); // чтобы самому слышать
-                } catch (e) {
-                    console.warn("Не удалось подключить к потоку:", e);
-                }
-            }
-        }
+const geometries = {};
+for (const name in BLOCKS) geometries[name] = makeBlockGeometry(BLOCKS[name].tiles);
 
-        function stopPlayback() {
-            if (currentAudio) {
-                currentAudio.pause();
-                currentAudio.currentTime = 0; 
-                currentAudio = null;
-            }
-            if (currentPlayingIndex) {
-                const btn = document.getElementById(`btn-${currentPlayingIndex}`);
-                if (btn) btn.classList.remove('playing');
-                currentPlayingIndex = null;
-            }
-        }
+/* ============================================================
+   3. МИР
+   ============================================================ */
+const world = new Map();
+const key = (x, y, z) => x + ',' + y + ',' + z;
+const HALF = 20;
 
-        fileInput.addEventListener('change', function(e) {
-            if (!e.target.files.length) return;
-            const file = e.target.files[0];
-            const index = activeButtonIndex;
-            showStatus("Чтение файла...");
+for (let x = -HALF; x < HALF; x++)
+  for (let z = -HALF; z < HALF; z++) {
+    world.set(key(x, 0, z), 'grass');
+    world.set(key(x, -1, z), 'dirt');
+    world.set(key(x, -2, z), 'dirt');
+    world.set(key(x, -3, z), 'stone');
+    world.set(key(x, -4, z), 'stone');
+    world.set(key(x, -5, z), 'bedrock');
+  }
 
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                const base64 = event.target.result;
-                const audio = new Audio(base64);
-                audio.onloadedmetadata = function() {
-                    if (audio.duration > MAX_DURATION) {
-                        alert("Слишком длинный файл (максимум 120 минут).");
-                        return;
-                    }
-                    const defaultName = file.name.replace(/\.[^/.]+$/, "");
-                    const customName = prompt("Введи название для кнопки:", defaultName);
-                    if (customName === null) { showStatus("Загрузка отменена"); return; }
-                    const finalName = customName.trim() === "" ? file.name : customName.trim();
-                    soundData[index] = { label: finalName, data: base64 };
-                    updateVisuals(index);
-                    showStatus(`Загружено: "${finalName}". Не забудь Сохранить!`);
-                    fileInput.value = '';
-                };
-            };
-            reader.readAsDataURL(file);
-        });
+function plantTree(tx, tz) {
+  const h = 4 + Math.floor(Math.random() * 3);
+  for (let y = 1; y <= h; y++) world.set(key(tx, y, tz), 'log');
 
-        async function deleteSound(index) {
-            if (currentPlayingIndex === index) stopPlayback();
-            delete soundData[index];
-            try { await dbDelete(String(index)); } catch (e) { console.error(e); }
-            updateVisuals(index);
-            showStatus("Трек удален");
-        }
+  const setLeaf = (x, y, z) => {
+    const k = key(x, y, z);
+    if (!world.has(k)) world.set(k, 'leaves');
+  };
 
-        function updateVisuals(index) {
-            const btn = document.getElementById(`btn-${index}`);
-            const label = document.getElementById(`label-${index}`);
-            if (soundData[index]) {
-                btn.classList.add('has-sound');
-                label.textContent = soundData[index].label;
-                label.title = soundData[index].label;
-            } else {
-                btn.classList.remove('has-sound');
-                label.innerHTML = '<span class="empty-label">Пусто</span>';
-                label.title = "";
-            }
-        }
+  for (let dy = -2; dy <= -1; dy++)
+    for (let dx = -2; dx <= 2; dx++)
+      for (let dz = -2; dz <= 2; dz++) {
+        if (Math.abs(dx) === 2 && Math.abs(dz) === 2) continue;
+        setLeaf(tx + dx, h + dy, tz + dz);
+      }
 
-        async function saveProgress() {
-            try {
-                const keys = Object.keys(soundData);
-                for (const k of keys) await dbPut(k, soundData[k]);
-                showStatus("Сохранено успешно!");
-            } catch (e) {
-                alert("Ошибка сохранения: " + e.message);
-            }
-        }
+  for (let dx = -1; dx <= 1; dx++)
+    for (let dz = -1; dz <= 1; dz++)
+      setLeaf(tx + dx, h, tz + dz);
 
-        async function loadFromStorage() {
-            try {
-                const saved = await dbGetAll();
-                soundData = saved || {};
-                for (let i = 1; i <= TOTAL_BUTTONS; i++) updateVisuals(i);
-                if (Object.keys(soundData).length) showStatus("Прогресс загружен");
-            } catch (e) { console.error(e); }
-        }
+  setLeaf(tx, h + 1, tz);
+  setLeaf(tx + 1, h + 1, tz); setLeaf(tx - 1, h + 1, tz);
+  setLeaf(tx, h + 1, tz + 1); setLeaf(tx, h + 1, tz - 1);
+  setLeaf(tx, h + 2, tz);
+}
 
-        async function clearAll() {
-            if (confirm("Полностью очистить саундпак?")) {
-                stopPlayback();
-                soundData = {};
-                try { await dbClear(); } catch (e) { console.error(e); }
-                for (let i = 1; i <= TOTAL_BUTTONS; i++) updateVisuals(i);
-                showStatus("Очищено");
-            }
-        }
+for (let i = 0; i < 22; i++) {
+  const tx = Math.floor(Math.random() * (2 * HALF - 8)) - HALF + 4;
+  const tz = Math.floor(Math.random() * (2 * HALF - 8)) - HALF + 4;
+  if (Math.abs(tx) < 4 && Math.abs(tz) < 4) continue;
+  plantTree(tx, tz);
+}
 
-        function showStatus(text) {
-            statusMsg.textContent = text;
-            setTimeout(() => { if (statusMsg.textContent === text) statusMsg.textContent = ""; }, 3000);
-        }
+/* ============================================================
+   4. СЦЕНА, КАМЕРА, СВЕТ
+   ============================================================ */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x8ec6ff);
+scene.fog = new THREE.Fog(0x8ec6ff, 26, 62);
 
-        /* =========================================================
-           WEBRTC ТРАНСЛЯЦИЯ через PeerJS
-           ========================================================= */
-        let peer = null;
-        let call = null;
-        let streamDest = null;
-        let audioCtx = null;
-        let streamActive = false;
-        let isHost = false;
+const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.05, 400);
+camera.rotation.order = 'YXZ';
 
-        function toggleStream() {
-            const panel = document.getElementById('streamPanel');
-            if (panel.classList.contains('visible')) {
-                panel.classList.remove('visible');
-                stopStream();
-            } else {
-                panel.classList.add('visible');
-                document.getElementById('modeSelector').style.display = 'block';
-                document.getElementById('hostView').style.display = 'none';
-                document.getElementById('guestView').style.display = 'none';
-            }
-        }
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+document.body.appendChild(renderer.domElement);
 
-        function randomCode() {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            let code = '';
-            for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
-            return code;
-        }
+scene.add(new THREE.HemisphereLight(0xffffff, 0x6b7a5a, 1.15));
+const sun = new THREE.DirectionalLight(0xfff6e0, 1.45);
+sun.position.set(40, 70, 25);
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0x9fc4ff, 0.35);
+fill.position.set(-30, 25, -35);
+scene.add(fill);
 
-        function startHost() {
-            isHost = true;
-            const code = randomCode();
-            document.getElementById('modeSelector').style.display = 'none';
-            document.getElementById('hostView').style.display = 'block';
-            document.getElementById('roomCode').textContent = code;
-            document.getElementById('hostStatus').textContent = 'Подключение к серверу...';
+/* ============================================================
+   5. РЕНДЕР БЛОКОВ
+   ============================================================ */
+const blockMaterial = new THREE.MeshLambertMaterial({ map: atlasTex });
+let instancedMeshes = [];
 
-            // Инициализация аудиоконтекста для перехвата звука
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (!streamDest) streamDest = audioCtx.createMediaStreamDestination();
-            streamActive = true;
+function rebuildWorld() {
+  for (const m of instancedMeshes) { scene.remove(m); m.dispose(); }
+  instancedMeshes = [];
 
-            peer = new Peer('sp42-' + code, { debug: 1 });
+  const groups = {};
+  for (const [k, type] of world) (groups[type] ||= []).push(k);
 
-            peer.on('open', (id) => {
-                document.getElementById('hostStatus').textContent = '✅ Комната готова. Отправь код другу.';
-                document.getElementById('streamBtn').classList.add('active');
-                document.getElementById('streamBtn').textContent = '⏹ Остановить трансляцию';
-            });
+  const mat4 = new THREE.Matrix4();
+  for (const type in groups) {
+    const list = groups[type];
+    const mesh = new THREE.InstancedMesh(geometries[type], blockMaterial, list.length);
+    for (let i = 0; i < list.length; i++) {
+      const [x, y, z] = list[i].split(',').map(Number);
+      mat4.makeTranslation(x + 0.5, y + 0.5, z + 0.5);
+      mesh.setMatrixAt(i, mat4);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.frustumCulled = false;
+    scene.add(mesh);
+    instancedMeshes.push(mesh);
+  }
+}
+rebuildWorld();
 
-            peer.on('call', (incoming) => {
-                call = incoming;
-                call.answer(streamDest.stream);
-                document.getElementById('hostStatus').textContent = '🎧 Друг подключился и слушает!';
-                call.on('close', () => {
-                    document.getElementById('hostStatus').textContent = 'Друг отключился. Ждём...';
-                });
-            });
+/* ============================================================
+   6. РАМКА ВЫДЕЛЕНИЯ
+   ============================================================ */
+const highlight = new THREE.LineSegments(
+  new THREE.EdgesGeometry(new THREE.BoxGeometry(1.004, 1.004, 1.004)),
+  new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.55 })
+);
+highlight.visible = false;
+scene.add(highlight);
 
-            peer.on('error', (err) => {
-                console.error(err);
-                document.getElementById('hostStatus').textContent = '❌ Ошибка: ' + err.type;
-            });
-        }
+/* ============================================================
+   7. ИГРОК И ФИЗИКА
+   ============================================================ */
+const GRAVITY = 32;
+const JUMP_V  = 9.2;
+const WALK    = 4.6;
+const RUN     = 7.6;
 
-        function showGuest() {
-            document.getElementById('modeSelector').style.display = 'none';
-            document.getElementById('guestView').style.display = 'block';
-        }
+const player = {
+  pos: new THREE.Vector3(0.5, 1.0, 0.5),
+  vel: new THREE.Vector3(),
+  onGround: false,
+  radius: 0.3,
+  height: 1.8,
+  eye: 1.62
+};
 
-        function joinRoom() {
-            const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
-            if (code.length !== 6) { alert("Код должен содержать 6 символов"); return; }
+function collidesAt(px, py, pz) {
+  const r = player.radius, h = player.height;
+  const x0 = Math.floor(px - r), x1 = Math.floor(px + r);
+  const y0 = Math.floor(py),     y1 = Math.floor(py + h - 1e-4);
+  const z0 = Math.floor(pz - r), z1 = Math.floor(pz + r);
+  for (let x = x0; x <= x1; x++)
+    for (let y = y0; y <= y1; y++)
+      for (let z = z0; z <= z1; z++)
+        if (world.has(key(x, y, z))) return true;
+  return false;
+}
+const collides = () => collidesAt(player.pos.x, player.pos.y, player.pos.z);
 
-            document.getElementById('guestStatus').textContent = 'Подключение...';
-            peer = new Peer({ debug: 1 });
+/* ============================================================
+   8. УПРАВЛЕНИЕ (КЛАВИАТУРА + МЫШЬ + ТАЧ)
+   ============================================================ */
+const keys = Object.create(null);
+let yaw = 0, pitch = 0;
 
-            peer.on('open', () => {
-                call = peer.call('sp42-' + code, new MediaStream());
-                if (!call) {
-                    document.getElementById('guestStatus').textContent = '❌ Не удалось подключиться';
-                    return;
-                }
+const overlay = document.getElementById('overlay');
 
-                call.on('stream', (remoteStream) => {
-                    const audio = document.getElementById('remoteAudio') || document.createElement('audio');
-                    audio.id = 'remoteAudio';
-                    audio.srcObject = remoteStream;
-                    audio.autoplay = true;
-                    document.body.appendChild(audio);
-                    document.getElementById('guestStatus').textContent = '🎵 Слушаешь музыку друга!';
-                    document.getElementById('streamBtn').classList.add('active');
-                    document.getElementById('streamBtn').textContent = '⏹ Отключиться';
-                });
+// Определяем, сенсорное ли устройство
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+if (isTouch) document.body.classList.add('touch');
 
-                call.on('close', () => {
-                    document.getElementById('guestStatus').textContent = 'Соединение закрыто';
-                });
+// --- Клавиатура ---
+addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'Space') e.preventDefault();
+  if (e.code.startsWith('Digit')) {
+    const n = parseInt(e.code.slice(5), 10) - 1;
+    if (n >= 0 && n < PLACEABLE.length) selectSlot(n);
+  }
+});
+addEventListener('keyup', e => { keys[e.code] = false; });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 
-                call.on('error', (err) => {
-                    document.getElementById('guestStatus').textContent = '❌ Ошибка: ' + err;
-                });
-            });
+// --- Захват мыши (ПК) ---
+overlay.addEventListener('click', () => {
+  if (isTouch) {
+    overlay.style.display = 'none';
+    initJoystick();
+  } else {
+    renderer.domElement.requestPointerLock();
+  }
+});
 
-            peer.on('error', (err) => {
-                console.error(err);
-                document.getElementById('guestStatus').textContent = '❌ ' + (err.type === 'peer-unavailable' ? 'Комната не найдена' : err.type);
-            });
-        }
+document.addEventListener('pointerlockchange', () => {
+  const locked = document.pointerLockElement === renderer.domElement;
+  if (!isTouch) overlay.style.display = locked ? 'none' : 'flex';
+  if (!locked) for (const k in keys) keys[k] = false;
+});
 
-        function stopStream() {
-            streamActive = false;
-            if (call) { try { call.close(); } catch(e){} call = null; }
-            if (peer) { try { peer.destroy(); } catch(e){} peer = null; }
-            const remote = document.getElementById('remoteAudio');
-            if (remote) remote.remove();
-            document.getElementById('streamBtn').classList.remove('active');
-            document.getElementById('streamBtn').textContent = '🔊 Создать комнату';
-            document.getElementById('modeSelector').style.display = 'block';
-            document.getElementById('hostView').style.display = 'none';
-            document.getElementById('guestView').style.display = 'none';
-        }
+document.addEventListener('mousemove', e => {
+  if (document.pointerLockElement !== renderer.domElement) return;
+  yaw   -= e.movementX * 0.0022;
+  pitch -= e.movementY * 0.0022;
+  const lim = Math.PI / 2 - 0.001;
+  pitch = Math.max(-lim, Math.min(lim, pitch));
+});
 
-        function copyRoomCode() {
-            const code = document.getElementById('roomCode').textContent;
-            navigator.clipboard.writeText(code).then(() => showStatus("Код скопирован!"));
-        }
+addEventListener('contextmenu', e => e.preventDefault());
 
-        function copyRoomLink() {
-            const code = document.getElementById('roomCode').textContent;
-            const link = location.origin + location.pathname + '?join=' + code;
-            navigator.clipboard.writeText(link).then(() => showStatus("Ссылка скопирована!"));
-        }
+/* ---------- Поворот камеры свайпом (телефон) ---------- */
+let lookId = null, lookX = 0, lookY = 0;
+renderer.domElement.addEventListener('touchstart', e => {
+  // Первый палец вне джойстика и вне кнопок — управляет камерой
+  for (const t of e.changedTouches) {
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    if (el && (el.closest('#joy-zone') || el.closest('.btn') || el.closest('#hotbar'))) continue;
+    if (lookId === null) {
+      lookId = t.identifier;
+      lookX = t.clientX;
+      lookY = t.clientY;
+    }
+  }
+}, { passive: true });
 
-        // Автовход по ссылке ?join=XXXXXX
-        window.addEventListener('load', () => {
-            const params = new URLSearchParams(location.search);
-            const joinCode = params.get('join');
-            if (joinCode) {
-                document.getElementById('streamPanel').classList.add('visible');
-                showGuest();
-                document.getElementById('joinCodeInput').value = joinCode.toUpperCase();
-                setTimeout(joinRoom, 500);
-            }
-        });
+renderer.domElement.addEventListener('touchmove', e => {
+  for (const t of e.changedTouches) {
+    if (t.identifier === lookId) {
+      const dx = t.clientX - lookX;
+      const dy = t.clientY - lookY;
+      lookX = t.clientX;
+      lookY = t.clientY;
+      yaw   -= dx * 0.006;
+      pitch -= dy * 0.006;
+      const lim = Math.PI / 2 - 0.001;
+      pitch = Math.max(-lim, Math.min(lim, pitch));
+    }
+  }
+}, { passive: true });
 
-        init();
-    </script>
+function endLook(e) {
+  for (const t of e.changedTouches)
+    if (t.identifier === lookId) lookId = null;
+}
+renderer.domElement.addEventListener('touchend', endLook);
+renderer.domElement.addEventListener('touchcancel', endLook);
+
+/* ============================================================
+   9. ВЫБОР БЛОКА (ХОТБАР)
+   ============================================================ */
+const PLACEABLE = [
+  { id: 'grass',  name: 'Трава',  color: '#6aaa40' },
+  { id: 'dirt',   name: 'Земля',  color: '#866043' },
+  { id: 'stone',  name: 'Камень', color: '#828282' },
+  { id: 'log',    name: 'Бревно', color: '#685232' },
+  { id: 'leaves', name: 'Листва', color: '#386e26' }
+];
+let selected = 0;
+
+const hotbarEl = document.getElementById('hotbar');
+PLACEABLE.forEach((b, i) => {
+  const d = document.createElement('div');
+  d.className = 'slot' + (i === 0 ? ' active' : '');
+  d.innerHTML = `<div class="sw" style="background:${b.color}"></div>${i + 1}`;
+  d.title = b.name;
+  d.addEventListener('click', () => selectSlot(i));
+  d.addEventListener('touchstart', ev => { ev.preventDefault(); ev.stopPropagation(); selectSlot(i); }, { passive: false });
+  hotbarEl.appendChild(d);
+});
+function selectSlot(i) {
+  selected = i;
+  [...hotbarEl.children].forEach((el, j) => el.classList.toggle('active', j === i));
+}
+
+/* ============================================================
+   10. ВОКСЕЛЬНЫЙ РЕЙКАСТ
+   ============================================================ */
+function raycastVoxel(origin, dir, maxDist = 6) {
+  let x = Math.floor(origin.x), y = Math.floor(origin.y), z = Math.floor(origin.z);
+  const stepX = dir.x > 0 ? 1 : -1;
+  const stepY = dir.y > 0 ? 1 : -1;
+  const stepZ = dir.z > 0 ? 1 : -1;
+  const tDeltaX = dir.x !== 0 ? Math.abs(1 / dir.x) : Infinity;
+  const tDeltaY = dir.y !== 0 ? Math.abs(1 / dir.y) : Infinity;
+  const tDeltaZ = dir.z !== 0 ? Math.abs(1 / dir.z) : Infinity;
+  let tMaxX = dir.x === 0 ? Infinity : (dir.x > 0 ? (x + 1 - origin.x) : (x - origin.x)) / dir.x;
+  let tMaxY = dir.y === 0 ? Infinity : (dir.y > 0 ? (y + 1 - origin.y) : (y - origin.y)) / dir.y;
+  let tMaxZ = dir.z === 0 ? Infinity : (dir.z > 0 ? (z + 1 - origin.z) : (z - origin.z)) / dir.z;
+  let nx = 0, ny = 0, nz = 0, t = 0;
+
+  for (let i = 0; i < 128; i++) {
+    if (world.has(key(x, y, z))) return { x, y, z, nx, ny, nz };
+    if (tMaxX < tMaxY && tMaxX < tMaxZ) {
+      x += stepX; t = tMaxX; tMaxX += tDeltaX; nx = -stepX; ny = 0; nz = 0;
+    } else if (tMaxY < tMaxZ) {
+      y += stepY; t = tMaxY; tMaxY += tDeltaY; nx = 0; ny = -stepY; nz = 0;
+    } else {
+      z += stepZ; t = tMaxZ; tMaxZ += tDeltaZ; nx = 0; ny = 0; nz = -stepZ;
+    }
+    if (t > maxDist) break;
+  }
+  return null;
+}
+
+/* ============================================================
+   11. ЛОМАТЬ / СТАВИТЬ
+   ============================================================ */
+function blockIntersectsPlayer(x, y, z) {
+  const p = player.pos, r = player.radius, h = player.height;
+  return (x + 1 > p.x - r && x < p.x + r &&
+          y + 1 > p.y     && y < p.y + h &&
+          z + 1 > p.z - r && z < p.z + r);
+}
+
+function getLookHit() {
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir);
+  return raycastVoxel(camera.position, dir, 6);
+}
+
+function doBreak() {
+  const hit = getLookHit();
+  if (!hit) return;
+  const k = key(hit.x, hit.y, hit.z);
+  if (world.get(k) === 'bedrock') return;
+  world.delete(k);
+  rebuildWorld();
+}
+
+function doPlace() {
+  const hit = getLookHit();
+  if (!hit) return;
+  const px = hit.x + hit.nx, py = hit.y + hit.ny, pz = hit.z + hit.nz;
+  if (world.has(key(px, py, pz))) return;
+  if (blockIntersectsPlayer(px, py, pz)) return;
+  world.set(key(px, py, pz), PLACEABLE[selected].id);
+  rebuildWorld();
+}
+
+// --- Мышь ---
+document.addEventListener('mousedown', e => {
+  if (document.pointerLockElement !== renderer.domElement) return;
+  if (e.button === 0) doBreak();
+  else if (e.button === 2) doPlace();
+});
+
+/* ============================================================
+   12. МОБИЛЬНЫЙ ДЖОЙСТИК И КНОПКИ
+   ============================================================ */
+let joyActive = false;
+let joyVec = { x: 0, y: 0 }; // -1..1
+let joyId = null;
+const joyZone = document.getElementById('joy-zone');
+const joyBase = document.getElementById('joy-base');
+const joyKnob = document.getElementById('joy-knob');
+const JOY_R = 48; // радиус хода ручки
+
+function initJoystick() {
+  // Ничего постоянно не навешиваем — обработчики ниже
+}
+
+joyZone.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  joyId = t.identifier;
+  joyActive = true;
+  moveJoystick(t.clientX, t.clientY);
+  joyBase.style.opacity = '1';
+}, { passive: false });
+
+joyZone.addEventListener('touchmove', e => {
+  for (const t of e.changedTouches) {
+    if (t.identifier === joyId) {
+      moveJoystick(t.clientX, t.clientY);
+    }
+  }
+  e.preventDefault();
+}, { passive: false });
+
+function endJoy(e) {
+  for (const t of e.changedTouches) {
+    if (t.identifier === joyId) {
+      joyId = null;
+      joyActive = false;
+      joyVec = { x: 0, y: 0 };
+      joyKnob.style.transform = 'translate(0,0)';
+      joyBase.style.opacity = '.65';
+    }
+  }
+}
+joyZone.addEventListener('touchend', endJoy);
+joyZone.addEventListener('touchcancel', endJoy);
+
+function moveJoystick(cx, cy) {
+  const r = joyBase.getBoundingClientRect();
+  const ox = r.left + r.width / 2;
+  const oy = r.top + r.height / 2;
+  let dx = cx - ox;
+  let dy = cy - oy;
+  const len = Math.hypot(dx, dy);
+  if (len > JOY_R) { dx = dx / len * JOY_R; dy = dy / len * JOY_R; }
+  joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+  joyVec.x = dx / JOY_R;
+  joyVec.y = dy / JOY_R;
+}
+
+// --- Кнопки действий ---
+function bindBtn(id, onDown, onUp) {
+  const el = document.getElementById(id);
+  el.addEventListener('touchstart', e => {
+    e.preventDefault(); e.stopPropagation();
+    el.classList.add('pressed');
+    onDown && onDown();
+  }, { passive: false });
+  el.addEventListener('touchend', e => {
+    e.preventDefault(); e.stopPropagation();
+    el.classList.remove('pressed');
+    onUp && onUp();
+  }, { passive: false });
+  el.addEventListener('touchcancel', () => {
+    el.classList.remove('pressed');
+    onUp && onUp();
+  });
+}
+
+// Прыжок: пока держишь — прыгает
+let jumpHold = false;
+bindBtn('btn-jump', () => { jumpHold = true; }, () => { jumpHold = false; });
+
+// Копать и ставить — по нажатию (можно держать, но с задержкой)
+let breakHold = false, breakTimer = 0;
+let placeHold = false, placeTimer = 0;
+
+bindBtn('btn-break', () => { doBreak(); breakHold = true; breakTimer = 0.35; },
+                   () => { breakHold = false; });
+bindBtn('btn-place', () => { doPlace(); placeHold = true; placeTimer = 0.35; },
+                   () => { placeHold = false; });
+
+/* ============================================================
+   13. ИГРОВОЙ ЦИКЛ
+   ============================================================ */
+const tmpDir = new THREE.Vector3();
+
+function update(dt) {
+  // --- ввод: клавиатура или джойстик ---
+  let fwd, strafe;
+  if (joyActive && (Math.abs(joyVec.x) > 0.05 || Math.abs(joyVec.y) > 0.05)) {
+    strafe =  joyVec.x;
+    fwd    = -joyVec.y;
+  } else {
+    fwd    = (keys['KeyW'] ? 1 : 0) - (keys['KeyS'] ? 1 : 0);
+    strafe = (keys['KeyD'] ? 1 : 0) - (keys['KeyA'] ? 1 : 0);
+  }
+
+  const sy = Math.sin(yaw), cy = Math.cos(yaw);
+  let mx = -sy * fwd + cy * strafe;
+  let mz = -cy * fwd - sy * strafe;
+  const len = Math.hypot(mx, mz);
+  if (len > 1) { mx /= len; mz /= len; }
+
+  const speed = keys['ShiftLeft'] || keys['ShiftRight'] ? RUN : WALK;
+  const p = player.pos;
+
+  const dx = mx * speed * dt;
+  const dz = mz * speed * dt;
+
+  if (dx !== 0) { p.x += dx; if (collides()) p.x -= dx; }
+  if (dz !== 0) { p.z += dz; if (collides()) p.z -= dz; }
+
+  // --- прыжок ---
+  if (player.onGround && (keys['Space'] || jumpHold)) {
+    player.vel.y = JUMP_V;
+    player.onGround = false;
+  }
+  player.vel.y -= GRAVITY * dt;
+  if (player.vel.y < -60) player.vel.y = -60;
+
+  const dy = player.vel.y * dt;
+  p.y += dy;
+  if (collides()) {
+    p.y -= dy;
+    player.vel.y = 0;
+  }
+
+  player.onGround = collidesAt(p.x, p.y - 0.08, p.z);
+
+  if (p.y < -25) { p.set(0.5, 1.2, 0.5); player.vel.set(0, 0, 0); }
+
+  // --- камера ---
+  camera.position.set(p.x, p.y + player.eye, p.z);
+  camera.rotation.y = yaw;
+  camera.rotation.x = pitch;
+
+  // --- рамка выделения ---
+  camera.getWorldDirection(tmpDir);
+  const hit = raycastVoxel(camera.position, tmpDir, 6);
+  if (hit) {
+    highlight.visible = true;
+    highlight.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
+  } else {
+    highlight.visible = false;
+  }
+
+  // --- автоповтор для кнопок «копать»/«ставить» ---
+  if (breakHold) {
+    breakTimer -= dt;
+    if (breakTimer <= 0) { doBreak(); breakTimer = 0.25; }
+  }
+  if (placeHold) {
+    placeTimer -= dt;
+    if (placeTimer <= 0) { doPlace(); placeTimer = 0.25; }
+  }
+}
+
+let last = performance.now();
+function animate() {
+  requestAnimationFrame(animate);
+  const now = performance.now();
+  let dt = (now - last) / 1000;
+  last = now;
+  dt = Math.min(dt, 0.05);
+  update(dt);
+  renderer.render(scene, camera);
+}
+animate();
+
+/* ============================================================
+   14. RESIZE
+   ============================================================ */
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
 </body>
 </html>
