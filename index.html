@@ -1,748 +1,363 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Плоский мир — как в Minecraft (телефон + ПК)</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Остров — карта игры</title>
 <style>
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin:0; height:100%; overflow:hidden; background:#8ec6ff;
-               font-family:"Segoe UI", Arial, sans-serif; touch-action:none; }
-  canvas { display:block; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    overflow: hidden;
+    background: #0a1a2a;
+    font-family: system-ui, sans-serif;
+    touch-action: none;
+  }
+  #canvas-container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+  canvas { display: block; width: 100%; height: 100%; }
 
-  /* Прицел */
-  #crosshair { position:fixed; left:50%; top:50%; width:22px; height:22px; margin:-11px 0 0 -11px;
-               pointer-events:none; z-index:5; }
-  #crosshair::before, #crosshair::after { content:''; position:absolute; background:#fff; mix-blend-mode:difference; }
-  #crosshair::before { left:10px; top:0; width:2px; height:22px; }
-  #crosshair::after  { top:10px; left:0; height:2px; width:22px; }
-
-  /* Стартовый экран */
-  #overlay { position:fixed; inset:0; z-index:20; display:flex; align-items:center; justify-content:center;
-             background:rgba(0,0,0,.7); color:#fff; cursor:pointer; text-align:center; padding:16px; }
-  #overlay .card { max-width:560px; padding:22px 26px; border:2px solid rgba(255,255,255,.35);
-                   border-radius:10px; background:rgba(0,0,0,.4); }
-  #overlay h1 { margin:0 0 14px; font-size:24px; letter-spacing:2px; }
-  #overlay p { margin:6px 0; font-size:14px; line-height:1.6; color:#d8e6ff; }
-  kbd { background:#fff; color:#111; border-radius:4px; padding:1px 6px; font-family:inherit; font-size:12px; }
-  #overlay .touch-info { display:none; }
-  @media (pointer:coarse) {
-    #overlay .pc-info { display:none; }
-    #overlay .touch-info { display:block; }
+  /* Круговой джостик */
+  #joystick-zone {
+    position: absolute;
+    bottom: 40px;
+    left: 40px;
+    width: 140px;
+    height: 140px;
+    z-index: 20;
+    touch-action: none;
+  }
+  #joystick-base {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    border: 2px solid rgba(255,255,255,0.25);
+    position: relative;
+    backdrop-filter: blur(6px);
+  }
+  #joystick-knob {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.75);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    position: absolute;
+    top: 42px;
+    left: 42px;
+    transition: none;
   }
 
-  /* ===== Мобильное управление ===== */
-  #mobile-ui { position:fixed; inset:0; z-index:6; pointer-events:none; display:none; }
-  body.touch #mobile-ui { display:block; }
-
-  /* Джойстик */
-  #joy-zone { position:absolute; left:0; bottom:0; width:45%; height:55%; pointer-events:auto; }
-  #joy-base { position:absolute; left:20px; bottom:20px; width:130px; height:130px; border-radius:50%;
-              background:rgba(255,255,255,.15); border:2px solid rgba(255,255,255,.4);
-              opacity:.65; transition:opacity .15s; }
-  #joy-knob { position:absolute; left:50%; top:50%; width:58px; height:58px; margin:-29px 0 0 -29px;
-              border-radius:50%; background:rgba(255,255,255,.55); border:2px solid #fff; }
-
-  /* Кнопки действий */
-  .btn { position:absolute; pointer-events:auto; display:flex; align-items:center; justify-content:center;
-         color:#fff; font-size:13px; font-weight:600; text-shadow:1px 1px 0 rgba(0,0,0,.6);
-         background:rgba(0,0,0,.4); border:2px solid rgba(255,255,255,.5); border-radius:50%;
-         user-select:none; }
-  .btn:active, .btn.pressed { background:rgba(255,255,255,.35); }
-  #btn-jump  { right:20px; bottom:130px; width:80px; height:80px; }
-  #btn-break { right:120px; bottom:35px; width:74px; height:74px; }
-  #btn-place { right:25px; bottom:35px; width:74px; height:74px; }
-
-  /* Хотбар */
-  #hotbar { position:absolute; left:50%; bottom:10px; transform:translateX(-50%);
-            display:flex; gap:6px; pointer-events:auto; }
-  .slot { width:56px; height:44px; display:flex; flex-direction:column; align-items:center; justify-content:center;
-          border:2px solid rgba(255,255,255,.45); background:rgba(0,0,0,.4);
-          border-radius:6px; font-size:10px; color:#fff; text-shadow:1px 1px 0 rgba(0,0,0,.6);
-          user-select:none; }
-  .slot.active { border-color:#fff; background:rgba(255,255,255,.3); }
-  .slot .sw { width:20px; height:20px; border-radius:3px; border:1px solid rgba(0,0,0,.4); margin-bottom:2px; }
-
-  #hud { position:fixed; left:12px; top:12px; z-index:5; color:#fff;
-         text-shadow:2px 2px 0 rgba(0,0,0,.7); font-size:12px; pointer-events:none; }
+  #info {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    color: white;
+    background: rgba(0,0,0,0.45);
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    z-index: 20;
+    backdrop-filter: blur(8px);
+    line-height: 1.4;
+  }
+  #info b { color: #7dd3fc; }
 </style>
 </head>
 <body>
-
-<div id="crosshair"></div>
-<div id="hud">Плоский мир</div>
-
-<!-- ===== Мобильное управление ===== -->
-<div id="mobile-ui">
-  <div id="joy-zone">
-    <div id="joy-base"><div id="joy-knob"></div></div>
+<div id="canvas-container">
+  <div id="info">
+    <b>Остров</b><br>
+    Двигай персонажа джостиком<br>
+    Персонаж появился в городе
   </div>
-  <div class="btn" id="btn-jump">Прыжок</div>
-  <div class="btn" id="btn-break">Копать</div>
-  <div class="btn" id="btn-place">Ставить</div>
-  <div id="hotbar"></div>
-</div>
-
-<!-- ===== Стартовый экран ===== -->
-<div id="overlay">
-  <div class="card">
-    <h1>ПЛОСКИЙ МИР</h1>
-    <div class="pc-info">
-      <p><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> — ходьба · <kbd>Space</kbd> — прыжок · <kbd>Shift</kbd> — бег</p>
-      <p><kbd>ЛКМ</kbd> — сломать блок · <kbd>ПКМ</kbd> — поставить блок</p>
-      <p><kbd>1</kbd>–<kbd>5</kbd> — выбрать блок · <kbd>Esc</kbd> — пауза</p>
+  <div id="joystick-zone">
+    <div id="joystick-base">
+      <div id="joystick-knob"></div>
     </div>
-    <div class="touch-info">
-      <p>Слева — <b>джойстик</b> для ходьбы</p>
-      <p>Свайп по экрану — <b>поворот камеры</b></p>
-      <p>Кнопки <b>«Копать»</b>, <b>«Ставить»</b>, <b>«Прыжок»</b> — справа</p>
-      <p>Тап по <b>хотбару</b> внизу — выбор блока</p>
-    </div>
-    <p style="margin-top:16px; font-size:16px; color:#fff;">Нажми, чтобы играть</p>
   </div>
 </div>
 
 <script type="importmap">
-{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
 </script>
 
 <script type="module">
 import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-/* ============================================================
-   1. ПРОЦЕДУРНЫЙ АТЛАС ТЕКСТУР (16×16 пикселей)
-   ============================================================ */
-const TILE = 16, COLS = 4, ROWS = 4;
-const atlasCanvas = document.createElement('canvas');
-atlasCanvas.width  = TILE * COLS;
-atlasCanvas.height = TILE * ROWS;
-const ctx = atlasCanvas.getContext('2d');
-
-const clamp255 = v => Math.max(0, Math.min(255, Math.round(v)));
-const shade = (base, d) => `rgb(${clamp255(base[0]+d)},${clamp255(base[1]+d)},${clamp255(base[2]+d)})`;
-
-function noiseTile(col, row, base, spread) {
-  for (let y = 0; y < TILE; y++)
-    for (let x = 0; x < TILE; x++) {
-      ctx.fillStyle = shade(base, (Math.random() - 0.5) * spread);
-      ctx.fillRect(col * TILE + x, row * TILE + y, 1, 1);
-    }
-}
-
-const GRASS = [106, 170, 64];
-const DIRT  = [134, 96, 67];
-const STONE = [130, 130, 130];
-const WOOD  = [104, 82, 50];
-const LEAF  = [56, 110, 38];
-const BED   = [72, 72, 72];
-
-noiseTile(0, 0, GRASS, 46);   // верх травы
-noiseTile(2, 0, DIRT, 40);    // земля
-noiseTile(3, 0, STONE, 38);   // камень
-
-// бок травы
-noiseTile(1, 0, DIRT, 40);
-for (let x = 0; x < TILE; x++) {
-  const h = 3 + (Math.random() < 0.5 ? 0 : 1);
-  for (let y = 0; y < h; y++) {
-    ctx.fillStyle = shade(GRASS, (Math.random() - 0.5) * 46);
-    ctx.fillRect(TILE + x, y, 1, 1);
-  }
-}
-
-// бок бревна
-for (let x = 0; x < TILE; x++) {
-  const base = WOOD.map(v => v + (Math.random() - 0.5) * 28);
-  for (let y = 0; y < TILE; y++) {
-    ctx.fillStyle = shade(base, (Math.random() - 0.5) * 18);
-    ctx.fillRect(x, TILE + y, 1, 1);
-  }
-}
-
-// спил бревна
-for (let y = 0; y < TILE; y++)
-  for (let x = 0; x < TILE; x++) {
-    const d = Math.max(Math.abs(x - 7.5), Math.abs(y - 7.5));
-    const ring = Math.floor(d) % 2 === 0 ? 20 : -20;
-    ctx.fillStyle = shade(WOOD, ring + (Math.random() - 0.5) * 16);
-    ctx.fillRect(TILE + x, TILE + y, 1, 1);
-  }
-
-// листва
-for (let y = 0; y < TILE; y++)
-  for (let x = 0; x < TILE; x++) {
-    const r = Math.random();
-    const d = r < 0.22 ? -30 : (r < 0.42 ? 28 : 0);
-    ctx.fillStyle = shade(LEAF, d + (Math.random() - 0.5) * 22);
-    ctx.fillRect(2 * TILE + x, TILE + y, 1, 1);
-  }
-
-// бедрок
-for (let y = 0; y < TILE; y++)
-  for (let x = 0; x < TILE; x++) {
-    ctx.fillStyle = shade(BED, (Math.random() - 0.5) * 74);
-    ctx.fillRect(3 * TILE + x, TILE + y, 1, 1);
-  }
-
-const atlasTex = new THREE.CanvasTexture(atlasCanvas);
-atlasTex.magFilter = THREE.NearestFilter;
-atlasTex.minFilter = THREE.NearestFilter;
-atlasTex.generateMipmaps = false;
-atlasTex.colorSpace = THREE.SRGBColorSpace;
-
-/* ============================================================
-   2. ОПИСАНИЕ БЛОКОВ
-   ============================================================ */
-const T = {
-  grass_top:  [0, 0], grass_side: [1, 0], dirt: [2, 0], stone: [3, 0],
-  log_side:   [0, 1], log_top:    [1, 1], leaves: [2, 1], bedrock: [3, 1]
-};
-const S = t => [t, t, t, t, t, t];
-
-const BLOCKS = {
-  grass:   { tiles: [T.grass_side, T.grass_side, T.grass_top, T.dirt, T.grass_side, T.grass_side] },
-  dirt:    { tiles: S(T.dirt) },
-  stone:   { tiles: S(T.stone) },
-  log:     { tiles: [T.log_side, T.log_side, T.log_top, T.log_top, T.log_side, T.log_side] },
-  leaves:  { tiles: S(T.leaves) },
-  bedrock: { tiles: S(T.bedrock) }
-};
-
-function makeBlockGeometry(faceTiles) {
-  const geo = new THREE.BoxGeometry(1, 1, 1);
-  const uv = geo.attributes.uv;
-  const N = COLS, M = ROWS;
-  for (let f = 0; f < 6; f++) {
-    const [c, r] = faceTiles[f];
-    for (let i = 0; i < 4; i++) {
-      const idx = f * 4 + i;
-      const u = uv.getX(idx), v = uv.getY(idx);
-      uv.setXY(idx, (c + u) / N, (M - 1 - r + v) / M);
-    }
-  }
-  uv.needsUpdate = true;
-  return geo;
-}
-
-const geometries = {};
-for (const name in BLOCKS) geometries[name] = makeBlockGeometry(BLOCKS[name].tiles);
-
-/* ============================================================
-   3. МИР
-   ============================================================ */
-const world = new Map();
-const key = (x, y, z) => x + ',' + y + ',' + z;
-const HALF = 20;
-
-for (let x = -HALF; x < HALF; x++)
-  for (let z = -HALF; z < HALF; z++) {
-    world.set(key(x, 0, z), 'grass');
-    world.set(key(x, -1, z), 'dirt');
-    world.set(key(x, -2, z), 'dirt');
-    world.set(key(x, -3, z), 'stone');
-    world.set(key(x, -4, z), 'stone');
-    world.set(key(x, -5, z), 'bedrock');
-  }
-
-function plantTree(tx, tz) {
-  const h = 4 + Math.floor(Math.random() * 3);
-  for (let y = 1; y <= h; y++) world.set(key(tx, y, tz), 'log');
-
-  const setLeaf = (x, y, z) => {
-    const k = key(x, y, z);
-    if (!world.has(k)) world.set(k, 'leaves');
-  };
-
-  for (let dy = -2; dy <= -1; dy++)
-    for (let dx = -2; dx <= 2; dx++)
-      for (let dz = -2; dz <= 2; dz++) {
-        if (Math.abs(dx) === 2 && Math.abs(dz) === 2) continue;
-        setLeaf(tx + dx, h + dy, tz + dz);
-      }
-
-  for (let dx = -1; dx <= 1; dx++)
-    for (let dz = -1; dz <= 1; dz++)
-      setLeaf(tx + dx, h, tz + dz);
-
-  setLeaf(tx, h + 1, tz);
-  setLeaf(tx + 1, h + 1, tz); setLeaf(tx - 1, h + 1, tz);
-  setLeaf(tx, h + 1, tz + 1); setLeaf(tx, h + 1, tz - 1);
-  setLeaf(tx, h + 2, tz);
-}
-
-for (let i = 0; i < 22; i++) {
-  const tx = Math.floor(Math.random() * (2 * HALF - 8)) - HALF + 4;
-  const tz = Math.floor(Math.random() * (2 * HALF - 8)) - HALF + 4;
-  if (Math.abs(tx) < 4 && Math.abs(tz) < 4) continue;
-  plantTree(tx, tz);
-}
-
-/* ============================================================
-   4. СЦЕНА, КАМЕРА, СВЕТ
-   ============================================================ */
+// === Сцена ===
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x8ec6ff);
-scene.fog = new THREE.Fog(0x8ec6ff, 26, 62);
+scene.background = new THREE.Color(0x87ceeb);
+scene.fog = new THREE.Fog(0x87ceeb, 80, 220);
 
-const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.05, 400);
-camera.rotation.order = 'YXZ';
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 500);
+camera.position.set(0, 55, 70);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-document.body.appendChild(renderer.domElement);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-scene.add(new THREE.HemisphereLight(0xffffff, 0x6b7a5a, 1.15));
-const sun = new THREE.DirectionalLight(0xfff6e0, 1.45);
-sun.position.set(40, 70, 25);
+// Мягкий свет
+const ambient = new THREE.AmbientLight(0xffffff, 0.55);
+scene.add(ambient);
+
+const sun = new THREE.DirectionalLight(0xfff5e0, 1.15);
+sun.position.set(40, 80, 30);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.near = 10;
+sun.shadow.camera.far = 200;
+sun.shadow.camera.left = -80;
+sun.shadow.camera.right = 80;
+sun.shadow.camera.top = 80;
+sun.shadow.camera.bottom = -80;
+sun.shadow.bias = -0.0003;
 scene.add(sun);
-const fill = new THREE.DirectionalLight(0x9fc4ff, 0.35);
-fill.position.set(-30, 25, -35);
+
+const fill = new THREE.DirectionalLight(0xaaccff, 0.25);
+fill.position.set(-30, 20, -40);
 scene.add(fill);
 
-/* ============================================================
-   5. РЕНДЕР БЛОКОВ
-   ============================================================ */
-const blockMaterial = new THREE.MeshLambertMaterial({ map: atlasTex });
-let instancedMeshes = [];
+// === Карта (плоскость с текстурой) ===
+const textureLoader = new THREE.TextureLoader();
+const mapTexture = textureLoader.load('map.png', () => {
+  mapTexture.colorSpace = THREE.SRGBColorSpace;
+  mapTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+});
 
-function rebuildWorld() {
-  for (const m of instancedMeshes) { scene.remove(m); m.dispose(); }
-  instancedMeshes = [];
+const mapSize = 120;
+const mapGeo = new THREE.PlaneGeometry(mapSize, mapSize, 1, 1);
+const mapMat = new THREE.MeshStandardMaterial({
+  map: mapTexture,
+  roughness: 0.85,
+  metalness: 0.05,
+  side: THREE.FrontSide
+});
+const mapMesh = new THREE.Mesh(mapGeo, mapMat);
+mapMesh.rotation.x = -Math.PI / 2;
+mapMesh.receiveShadow = true;
+scene.add(mapMesh);
 
-  const groups = {};
-  for (const [k, type] of world) (groups[type] ||= []).push(k);
+// Вода вокруг (простое кольцо)
+const waterGeo = new THREE.RingGeometry(mapSize * 0.5 - 2, 200, 64);
+const waterMat = new THREE.MeshStandardMaterial({
+  color: 0x1e90ff,
+  roughness: 0.15,
+  metalness: 0.3,
+  transparent: true,
+  opacity: 0.85
+});
+const water = new THREE.Mesh(waterGeo, waterMat);
+water.rotation.x = -Math.PI / 2;
+water.position.y = -0.3;
+scene.add(water);
 
-  const mat4 = new THREE.Matrix4();
-  for (const type in groups) {
-    const list = groups[type];
-    const mesh = new THREE.InstancedMesh(geometries[type], blockMaterial, list.length);
-    for (let i = 0; i < list.length; i++) {
-      const [x, y, z] = list[i].split(',').map(Number);
-      mat4.makeTranslation(x + 0.5, y + 0.5, z + 0.5);
-      mesh.setMatrixAt(i, mat4);
-    }
-    mesh.instanceMatrix.needsUpdate = true;
-    mesh.frustumCulled = false;
-    scene.add(mesh);
-    instancedMeshes.push(mesh);
-  }
-}
-rebuildWorld();
+// === Персонаж (простой 3D) ===
+const player = new THREE.Group();
 
-/* ============================================================
-   6. РАМКА ВЫДЕЛЕНИЯ
-   ============================================================ */
-const highlight = new THREE.LineSegments(
-  new THREE.EdgesGeometry(new THREE.BoxGeometry(1.004, 1.004, 1.004)),
-  new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.55 })
-);
-highlight.visible = false;
-scene.add(highlight);
+// Тело
+const bodyGeo = new THREE.CapsuleGeometry(0.45, 0.9, 8, 16);
+const bodyMat = new THREE.MeshStandardMaterial({
+  color: 0x3b82f6,
+  roughness: 0.4,
+  metalness: 0.1
+});
+const body = new THREE.Mesh(bodyGeo, bodyMat);
+body.position.y = 1.1;
+body.castShadow = true;
+player.add(body);
 
-/* ============================================================
-   7. ИГРОК И ФИЗИКА
-   ============================================================ */
-const GRAVITY = 32;
-const JUMP_V  = 9.2;
-const WALK    = 4.6;
-const RUN     = 7.6;
+// Голова
+const headGeo = new THREE.SphereGeometry(0.38, 16, 16);
+const headMat = new THREE.MeshStandardMaterial({ color: 0xfcd34d, roughness: 0.5 });
+const head = new THREE.Mesh(headGeo, headMat);
+head.position.y = 2.05;
+head.castShadow = true;
+player.add(head);
 
-const player = {
-  pos: new THREE.Vector3(0.5, 1.0, 0.5),
-  vel: new THREE.Vector3(),
-  onGround: false,
-  radius: 0.3,
-  height: 1.8,
-  eye: 1.62
+// Глаза
+const eyeGeo = new THREE.SphereGeometry(0.08, 8, 8);
+const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+leftEye.position.set(-0.14, 2.1, 0.32);
+player.add(leftEye);
+const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+rightEye.position.set(0.14, 2.1, 0.32);
+player.add(rightEye);
+
+// Руки
+const armGeo = new THREE.CapsuleGeometry(0.12, 0.5, 4, 8);
+const armMat = new THREE.MeshStandardMaterial({ color: 0x2563eb });
+const leftArm = new THREE.Mesh(armGeo, armMat);
+leftArm.position.set(-0.6, 1.2, 0);
+leftArm.rotation.z = 0.3;
+leftArm.castShadow = true;
+player.add(leftArm);
+const rightArm = new THREE.Mesh(armGeo, armMat);
+rightArm.position.set(0.6, 1.2, 0);
+rightArm.rotation.z = -0.3;
+rightArm.castShadow = true;
+player.add(rightArm);
+
+// Ноги
+const legGeo = new THREE.CapsuleGeometry(0.14, 0.55, 4, 8);
+const legMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a });
+const leftLeg = new THREE.Mesh(legGeo, legMat);
+leftLeg.position.set(-0.22, 0.4, 0);
+leftLeg.castShadow = true;
+player.add(leftLeg);
+const rightLeg = new THREE.Mesh(legGeo, legMat);
+rightLeg.position.set(0.22, 0.4, 0);
+rightLeg.castShadow = true;
+player.add(rightLeg);
+
+player.position.set(0, 0, 0);
+scene.add(player);
+
+// Точки появления в городах (примерно по карте)
+const spawnPoints = [
+  { x: -28, z: -8 },   // западный город
+  { x: 5, z: -18 },    // центральный город
+  { x: 22, z: 8 },     // восточный город / промзона
+  { x: 18, z: 28 },    // южный городок
+  { x: -15, z: 25 }    // юго-запад
+];
+const spawn = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
+player.position.set(spawn.x, 0, spawn.z);
+
+// === Управление джостиком ===
+const joystick = {
+  active: false,
+  dx: 0,
+  dy: 0,
+  maxRadius: 42
 };
 
-function collidesAt(px, py, pz) {
-  const r = player.radius, h = player.height;
-  const x0 = Math.floor(px - r), x1 = Math.floor(px + r);
-  const y0 = Math.floor(py),     y1 = Math.floor(py + h - 1e-4);
-  const z0 = Math.floor(pz - r), z1 = Math.floor(pz + r);
-  for (let x = x0; x <= x1; x++)
-    for (let y = y0; y <= y1; y++)
-      for (let z = z0; z <= z1; z++)
-        if (world.has(key(x, y, z))) return true;
-  return false;
-}
-const collides = () => collidesAt(player.pos.x, player.pos.y, player.pos.z);
+const knob = document.getElementById('joystick-knob');
+const base = document.getElementById('joystick-base');
+const zone = document.getElementById('joystick-zone');
 
-/* ============================================================
-   8. УПРАВЛЕНИЕ (КЛАВИАТУРА + МЫШЬ + ТАЧ)
-   ============================================================ */
-const keys = Object.create(null);
-let yaw = 0, pitch = 0;
-
-const overlay = document.getElementById('overlay');
-
-// Определяем, сенсорное ли устройство
-const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
-if (isTouch) document.body.classList.add('touch');
-
-// --- Клавиатура ---
-addEventListener('keydown', e => {
-  keys[e.code] = true;
-  if (e.code === 'Space') e.preventDefault();
-  if (e.code.startsWith('Digit')) {
-    const n = parseInt(e.code.slice(5), 10) - 1;
-    if (n >= 0 && n < PLACEABLE.length) selectSlot(n);
+function updateKnob(x, y) {
+  const len = Math.sqrt(x * x + y * y);
+  if (len > joystick.maxRadius) {
+    x = (x / len) * joystick.maxRadius;
+    y = (y / len) * joystick.maxRadius;
   }
-});
-addEventListener('keyup', e => { keys[e.code] = false; });
-addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
-
-// --- Захват мыши (ПК) ---
-overlay.addEventListener('click', () => {
-  if (isTouch) {
-    overlay.style.display = 'none';
-    initJoystick();
-  } else {
-    renderer.domElement.requestPointerLock();
-  }
-});
-
-document.addEventListener('pointerlockchange', () => {
-  const locked = document.pointerLockElement === renderer.domElement;
-  if (!isTouch) overlay.style.display = locked ? 'none' : 'flex';
-  if (!locked) for (const k in keys) keys[k] = false;
-});
-
-document.addEventListener('mousemove', e => {
-  if (document.pointerLockElement !== renderer.domElement) return;
-  yaw   -= e.movementX * 0.0022;
-  pitch -= e.movementY * 0.0022;
-  const lim = Math.PI / 2 - 0.001;
-  pitch = Math.max(-lim, Math.min(lim, pitch));
-});
-
-addEventListener('contextmenu', e => e.preventDefault());
-
-/* ---------- Поворот камеры свайпом (телефон) ---------- */
-let lookId = null, lookX = 0, lookY = 0;
-renderer.domElement.addEventListener('touchstart', e => {
-  // Первый палец вне джойстика и вне кнопок — управляет камерой
-  for (const t of e.changedTouches) {
-    const el = document.elementFromPoint(t.clientX, t.clientY);
-    if (el && (el.closest('#joy-zone') || el.closest('.btn') || el.closest('#hotbar'))) continue;
-    if (lookId === null) {
-      lookId = t.identifier;
-      lookX = t.clientX;
-      lookY = t.clientY;
-    }
-  }
-}, { passive: true });
-
-renderer.domElement.addEventListener('touchmove', e => {
-  for (const t of e.changedTouches) {
-    if (t.identifier === lookId) {
-      const dx = t.clientX - lookX;
-      const dy = t.clientY - lookY;
-      lookX = t.clientX;
-      lookY = t.clientY;
-      yaw   -= dx * 0.006;
-      pitch -= dy * 0.006;
-      const lim = Math.PI / 2 - 0.001;
-      pitch = Math.max(-lim, Math.min(lim, pitch));
-    }
-  }
-}, { passive: true });
-
-function endLook(e) {
-  for (const t of e.changedTouches)
-    if (t.identifier === lookId) lookId = null;
-}
-renderer.domElement.addEventListener('touchend', endLook);
-renderer.domElement.addEventListener('touchcancel', endLook);
-
-/* ============================================================
-   9. ВЫБОР БЛОКА (ХОТБАР)
-   ============================================================ */
-const PLACEABLE = [
-  { id: 'grass',  name: 'Трава',  color: '#6aaa40' },
-  { id: 'dirt',   name: 'Земля',  color: '#866043' },
-  { id: 'stone',  name: 'Камень', color: '#828282' },
-  { id: 'log',    name: 'Бревно', color: '#685232' },
-  { id: 'leaves', name: 'Листва', color: '#386e26' }
-];
-let selected = 0;
-
-const hotbarEl = document.getElementById('hotbar');
-PLACEABLE.forEach((b, i) => {
-  const d = document.createElement('div');
-  d.className = 'slot' + (i === 0 ? ' active' : '');
-  d.innerHTML = `<div class="sw" style="background:${b.color}"></div>${i + 1}`;
-  d.title = b.name;
-  d.addEventListener('click', () => selectSlot(i));
-  d.addEventListener('touchstart', ev => { ev.preventDefault(); ev.stopPropagation(); selectSlot(i); }, { passive: false });
-  hotbarEl.appendChild(d);
-});
-function selectSlot(i) {
-  selected = i;
-  [...hotbarEl.children].forEach((el, j) => el.classList.toggle('active', j === i));
+  knob.style.transform = `translate(${x}px, ${y}px)`;
+  joystick.dx = x / joystick.maxRadius;
+  joystick.dy = y / joystick.maxRadius;
 }
 
-/* ============================================================
-   10. ВОКСЕЛЬНЫЙ РЕЙКАСТ
-   ============================================================ */
-function raycastVoxel(origin, dir, maxDist = 6) {
-  let x = Math.floor(origin.x), y = Math.floor(origin.y), z = Math.floor(origin.z);
-  const stepX = dir.x > 0 ? 1 : -1;
-  const stepY = dir.y > 0 ? 1 : -1;
-  const stepZ = dir.z > 0 ? 1 : -1;
-  const tDeltaX = dir.x !== 0 ? Math.abs(1 / dir.x) : Infinity;
-  const tDeltaY = dir.y !== 0 ? Math.abs(1 / dir.y) : Infinity;
-  const tDeltaZ = dir.z !== 0 ? Math.abs(1 / dir.z) : Infinity;
-  let tMaxX = dir.x === 0 ? Infinity : (dir.x > 0 ? (x + 1 - origin.x) : (x - origin.x)) / dir.x;
-  let tMaxY = dir.y === 0 ? Infinity : (dir.y > 0 ? (y + 1 - origin.y) : (y - origin.y)) / dir.y;
-  let tMaxZ = dir.z === 0 ? Infinity : (dir.z > 0 ? (z + 1 - origin.z) : (z - origin.z)) / dir.z;
-  let nx = 0, ny = 0, nz = 0, t = 0;
-
-  for (let i = 0; i < 128; i++) {
-    if (world.has(key(x, y, z))) return { x, y, z, nx, ny, nz };
-    if (tMaxX < tMaxY && tMaxX < tMaxZ) {
-      x += stepX; t = tMaxX; tMaxX += tDeltaX; nx = -stepX; ny = 0; nz = 0;
-    } else if (tMaxY < tMaxZ) {
-      y += stepY; t = tMaxY; tMaxY += tDeltaY; nx = 0; ny = -stepY; nz = 0;
-    } else {
-      z += stepZ; t = tMaxZ; tMaxZ += tDeltaZ; nx = 0; ny = 0; nz = -stepZ;
-    }
-    if (t > maxDist) break;
-  }
-  return null;
-}
-
-/* ============================================================
-   11. ЛОМАТЬ / СТАВИТЬ
-   ============================================================ */
-function blockIntersectsPlayer(x, y, z) {
-  const p = player.pos, r = player.radius, h = player.height;
-  return (x + 1 > p.x - r && x < p.x + r &&
-          y + 1 > p.y     && y < p.y + h &&
-          z + 1 > p.z - r && z < p.z + r);
-}
-
-function getLookHit() {
-  const dir = new THREE.Vector3();
-  camera.getWorldDirection(dir);
-  return raycastVoxel(camera.position, dir, 6);
-}
-
-function doBreak() {
-  const hit = getLookHit();
-  if (!hit) return;
-  const k = key(hit.x, hit.y, hit.z);
-  if (world.get(k) === 'bedrock') return;
-  world.delete(k);
-  rebuildWorld();
-}
-
-function doPlace() {
-  const hit = getLookHit();
-  if (!hit) return;
-  const px = hit.x + hit.nx, py = hit.y + hit.ny, pz = hit.z + hit.nz;
-  if (world.has(key(px, py, pz))) return;
-  if (blockIntersectsPlayer(px, py, pz)) return;
-  world.set(key(px, py, pz), PLACEABLE[selected].id);
-  rebuildWorld();
-}
-
-// --- Мышь ---
-document.addEventListener('mousedown', e => {
-  if (document.pointerLockElement !== renderer.domElement) return;
-  if (e.button === 0) doBreak();
-  else if (e.button === 2) doPlace();
-});
-
-/* ============================================================
-   12. МОБИЛЬНЫЙ ДЖОЙСТИК И КНОПКИ
-   ============================================================ */
-let joyActive = false;
-let joyVec = { x: 0, y: 0 }; // -1..1
-let joyId = null;
-const joyZone = document.getElementById('joy-zone');
-const joyBase = document.getElementById('joy-base');
-const joyKnob = document.getElementById('joy-knob');
-const JOY_R = 48; // радиус хода ручки
-
-function initJoystick() {
-  // Ничего постоянно не навешиваем — обработчики ниже
-}
-
-joyZone.addEventListener('touchstart', e => {
+function onStart(e) {
   e.preventDefault();
-  const t = e.changedTouches[0];
-  joyId = t.identifier;
-  joyActive = true;
-  moveJoystick(t.clientX, t.clientY);
-  joyBase.style.opacity = '1';
-}, { passive: false });
+  joystick.active = true;
+  const rect = base.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  updateKnob(clientX - cx, clientY - cy);
+}
 
-joyZone.addEventListener('touchmove', e => {
-  for (const t of e.changedTouches) {
-    if (t.identifier === joyId) {
-      moveJoystick(t.clientX, t.clientY);
-    }
-  }
+function onMove(e) {
+  if (!joystick.active) return;
   e.preventDefault();
-}, { passive: false });
-
-function endJoy(e) {
-  for (const t of e.changedTouches) {
-    if (t.identifier === joyId) {
-      joyId = null;
-      joyActive = false;
-      joyVec = { x: 0, y: 0 };
-      joyKnob.style.transform = 'translate(0,0)';
-      joyBase.style.opacity = '.65';
-    }
-  }
-}
-joyZone.addEventListener('touchend', endJoy);
-joyZone.addEventListener('touchcancel', endJoy);
-
-function moveJoystick(cx, cy) {
-  const r = joyBase.getBoundingClientRect();
-  const ox = r.left + r.width / 2;
-  const oy = r.top + r.height / 2;
-  let dx = cx - ox;
-  let dy = cy - oy;
-  const len = Math.hypot(dx, dy);
-  if (len > JOY_R) { dx = dx / len * JOY_R; dy = dy / len * JOY_R; }
-  joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
-  joyVec.x = dx / JOY_R;
-  joyVec.y = dy / JOY_R;
+  const rect = base.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  updateKnob(clientX - cx, clientY - cy);
 }
 
-// --- Кнопки действий ---
-function bindBtn(id, onDown, onUp) {
-  const el = document.getElementById(id);
-  el.addEventListener('touchstart', e => {
-    e.preventDefault(); e.stopPropagation();
-    el.classList.add('pressed');
-    onDown && onDown();
-  }, { passive: false });
-  el.addEventListener('touchend', e => {
-    e.preventDefault(); e.stopPropagation();
-    el.classList.remove('pressed');
-    onUp && onUp();
-  }, { passive: false });
-  el.addEventListener('touchcancel', () => {
-    el.classList.remove('pressed');
-    onUp && onUp();
-  });
+function onEnd() {
+  joystick.active = false;
+  joystick.dx = 0;
+  joystick.dy = 0;
+  knob.style.transform = 'translate(0px, 0px)';
 }
 
-// Прыжок: пока держишь — прыгает
-let jumpHold = false;
-bindBtn('btn-jump', () => { jumpHold = true; }, () => { jumpHold = false; });
+zone.addEventListener('mousedown', onStart);
+zone.addEventListener('touchstart', onStart, { passive: false });
+window.addEventListener('mousemove', onMove);
+window.addEventListener('touchmove', onMove, { passive: false });
+window.addEventListener('mouseup', onEnd);
+window.addEventListener('touchend', onEnd);
 
-// Копать и ставить — по нажатию (можно держать, но с задержкой)
-let breakHold = false, breakTimer = 0;
-let placeHold = false, placeTimer = 0;
+// === Камера следует за персонажем ===
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.maxPolarAngle = Math.PI / 2.1;
+controls.minDistance = 15;
+controls.maxDistance = 90;
+controls.target.copy(player.position);
 
-bindBtn('btn-break', () => { doBreak(); breakHold = true; breakTimer = 0.35; },
-                   () => { breakHold = false; });
-bindBtn('btn-place', () => { doPlace(); placeHold = true; placeTimer = 0.35; },
-                   () => { placeHold = false; });
+// === Анимация ===
+const clock = new THREE.Clock();
+const speed = 12;
+let walkPhase = 0;
 
-/* ============================================================
-   13. ИГРОВОЙ ЦИКЛ
-   ============================================================ */
-const tmpDir = new THREE.Vector3();
-
-function update(dt) {
-  // --- ввод: клавиатура или джойстик ---
-  let fwd, strafe;
-  if (joyActive && (Math.abs(joyVec.x) > 0.05 || Math.abs(joyVec.y) > 0.05)) {
-    strafe =  joyVec.x;
-    fwd    = -joyVec.y;
-  } else {
-    fwd    = (keys['KeyW'] ? 1 : 0) - (keys['KeyS'] ? 1 : 0);
-    strafe = (keys['KeyD'] ? 1 : 0) - (keys['KeyA'] ? 1 : 0);
-  }
-
-  const sy = Math.sin(yaw), cy = Math.cos(yaw);
-  let mx = -sy * fwd + cy * strafe;
-  let mz = -cy * fwd - sy * strafe;
-  const len = Math.hypot(mx, mz);
-  if (len > 1) { mx /= len; mz /= len; }
-
-  const speed = keys['ShiftLeft'] || keys['ShiftRight'] ? RUN : WALK;
-  const p = player.pos;
-
-  const dx = mx * speed * dt;
-  const dz = mz * speed * dt;
-
-  if (dx !== 0) { p.x += dx; if (collides()) p.x -= dx; }
-  if (dz !== 0) { p.z += dz; if (collides()) p.z -= dz; }
-
-  // --- прыжок ---
-  if (player.onGround && (keys['Space'] || jumpHold)) {
-    player.vel.y = JUMP_V;
-    player.onGround = false;
-  }
-  player.vel.y -= GRAVITY * dt;
-  if (player.vel.y < -60) player.vel.y = -60;
-
-  const dy = player.vel.y * dt;
-  p.y += dy;
-  if (collides()) {
-    p.y -= dy;
-    player.vel.y = 0;
-  }
-
-  player.onGround = collidesAt(p.x, p.y - 0.08, p.z);
-
-  if (p.y < -25) { p.set(0.5, 1.2, 0.5); player.vel.set(0, 0, 0); }
-
-  // --- камера ---
-  camera.position.set(p.x, p.y + player.eye, p.z);
-  camera.rotation.y = yaw;
-  camera.rotation.x = pitch;
-
-  // --- рамка выделения ---
-  camera.getWorldDirection(tmpDir);
-  const hit = raycastVoxel(camera.position, tmpDir, 6);
-  if (hit) {
-    highlight.visible = true;
-    highlight.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
-  } else {
-    highlight.visible = false;
-  }
-
-  // --- автоповтор для кнопок «копать»/«ставить» ---
-  if (breakHold) {
-    breakTimer -= dt;
-    if (breakTimer <= 0) { doBreak(); breakTimer = 0.25; }
-  }
-  if (placeHold) {
-    placeTimer -= dt;
-    if (placeTimer <= 0) { doPlace(); placeTimer = 0.25; }
-  }
-}
-
-let last = performance.now();
 function animate() {
   requestAnimationFrame(animate);
-  const now = performance.now();
-  let dt = (now - last) / 1000;
-  last = now;
-  dt = Math.min(dt, 0.05);
-  update(dt);
+  const dt = Math.min(clock.getDelta(), 0.05);
+
+  // Движение
+  if (joystick.dx !== 0 || joystick.dy !== 0) {
+    const dir = new THREE.Vector3(joystick.dx, 0, joystick.dy);
+    dir.normalize();
+
+    // Поворачиваем в сторону движения
+    const angle = Math.atan2(dir.x, dir.z);
+    player.rotation.y = angle;
+
+    player.position.x += dir.x * speed * dt;
+    player.position.z += dir.z * speed * dt;
+
+    // Границы карты
+    const half = mapSize / 2 - 3;
+    player.position.x = THREE.MathUtils.clamp(player.position.x, -half, half);
+    player.position.z = THREE.MathUtils.clamp(player.position.z, -half, half);
+
+    // Простая анимация ходьбы
+    walkPhase += dt * 10;
+    leftLeg.rotation.x = Math.sin(walkPhase) * 0.5;
+    rightLeg.rotation.x = Math.sin(walkPhase + Math.PI) * 0.5;
+    leftArm.rotation.x = Math.sin(walkPhase + Math.PI) * 0.4;
+    rightArm.rotation.x = Math.sin(walkPhase) * 0.4;
+  } else {
+    leftLeg.rotation.x *= 0.85;
+    rightLeg.rotation.x *= 0.85;
+    leftArm.rotation.x *= 0.85;
+    rightArm.rotation.x *= 0.85;
+  }
+
+  // Камера мягко следует
+  controls.target.lerp(player.position, 0.08);
+  controls.update();
+
   renderer.render(scene, camera);
 }
 animate();
 
-/* ============================================================
-   14. RESIZE
-   ============================================================ */
-addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
+// Ресайз
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
+  renderer.setSize(window.innerWidth, window.innerHeight);
 });
 </script>
 </body>
