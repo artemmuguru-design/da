@@ -2,50 +2,103 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChugurAI</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ChugurAI — Живой Ассистент</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: "Segoe UI", system-ui, sans-serif; background: radial-gradient(circle at 50% 0%, #1b2a4a, #0a0f1c 70%); color: #e8eefc; padding: 20px; }
-  .card { width: 100%; max-width: 460px; background: rgba(255,255,255,0.05); border: 1px solid rgba(120,180,255,0.25); border-radius: 24px; padding: 28px 24px 32px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.6); backdrop-filter: blur(6px); }
-  h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; color: #9cc4ff; letter-spacing: 1px; }
-  .subtitle { font-size: 13px; color: #7f93b5; margin-bottom: 22px; }
+  
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background: linear-gradient(160deg, #0a0e1a 0%, #12172b 40%, #0d1220 100%);
+    color: #e8e4d8;
+    padding: 20px;
+    overflow-x: hidden;
+    touch-action: manipulation;
+  }
+  
+  .card {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    background: #141a2d; /* Плотный фон без размытия */
+    border: 1px solid rgba(212,175,55,0.25);
+    border-radius: 8px;
+    padding: 40px 32px 32px;
+    text-align: center;
+    box-shadow: 0 25px 70px rgba(0,0,0,.8);
+  }
+  
+  .card::before, .card::after {
+    content: '';
+    position: absolute;
+    width: 30px; height: 30px;
+    border: 1px solid #d4af37;
+    pointer-events: none;
+  }
+  .card::before { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+  .card::after { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+  
+  h1 { font-size: 24px; font-weight: 600; letter-spacing: 5px; color: #d4af37; text-transform: uppercase; margin-bottom: 8px; }
+  .title-divider { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 14px; }
+  .title-divider::before, .title-divider::after { content: ''; height: 1px; width: 50px; background: linear-gradient(90deg, transparent, #d4af37, transparent); pointer-events: none; }
+  .title-divider span { color: #d4af37; font-size: 12px; }
+  .subtitle { font-size: 13px; color: #8a8175; margin-bottom: 28px; }
   
   /* Робот */
-  .robot { width: 110px; height: 110px; margin: 0 auto 22px; position: relative; filter: drop-shadow(0 0 18px rgba(90,170,255,.55)); }
-  .antenna { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); width: 4px; height: 18px; background: #5aa8ff; border-radius: 2px; }
-  .antenna::after { content: ""; position: absolute; top: -9px; left: 50%; transform: translateX(-50%); width: 12px; height: 12px; border-radius: 50%; background: #ff5c8a; box-shadow: 0 0 12px #ff5c8a; animation: blink 1.6s infinite; }
-  @keyframes blink { 0%,100% { opacity: 1 } 50% { opacity: .25 } }
-  .head { width: 110px; height: 96px; margin-top: 14px; background: linear-gradient(160deg, #2d4a7a, #16233c); border: 2px solid #5aa8ff; border-radius: 26px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; padding-top: 26px; gap: 16px; position: relative; }
-  .eye { width: 18px; height: 18px; border-radius: 50%; background: #7ef0ff; box-shadow: 0 0 14px #7ef0ff; transition: .15s; }
-  .mouth { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); width: 34px; height: 6px; border-radius: 4px; background: #7ef0ff; box-shadow: 0 0 12px #7ef0ff; transition: .15s; }
-  .robot.talking .mouth { animation: talk .28s infinite alternate; }
-  @keyframes talk { from { height: 6px; width: 34px; } to { height: 20px; width: 26px; } }
-  .robot.listening .head { border-color: #4dffa6; box-shadow: 0 0 25px rgba(77,255,166,.6); }
-  .robot.listening .eye { background: #4dffa6; box-shadow: 0 0 14px #4dffa6; }
+  .robot { width: 120px; height: 120px; margin: 0 auto 26px; position: relative; pointer-events: none; }
+  .antenna { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); width: 2px; height: 20px; background: linear-gradient(to top, #d4af37, transparent); }
+  .antenna::after { content: ""; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 10px; height: 10px; border-radius: 50%; background: #d4af37; box-shadow: 0 0 15px #d4af37; animation: glow 2s infinite ease-in-out; }
+  @keyframes glow { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
   
-  /* Кнопка */
-  .mic-btn { width: 92px; height: 92px; border-radius: 50%; border: none; cursor: pointer; background: linear-gradient(145deg, #3d8bff, #1f4fb8); box-shadow: 0 10px 30px rgba(61,139,255,.45); display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; transition: transform .15s; }
-  .mic-btn:hover { transform: scale(1.06); }
-  .mic-btn:active { transform: scale(.96); }
-  .mic-btn svg { width: 40px; height: 40px; fill: #fff; }
-  .mic-btn.active { background: linear-gradient(145deg, #ff4d6d, #b81f3f); animation: pulse 1.4s infinite; }
-  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,77,109,.7); } 70% { box-shadow: 0 0 0 26px rgba(255,77,109,0); } 100% { box-shadow: 0 0 0 0 rgba(255,77,109,0); } }
+  .head { width: 120px; height: 106px; margin-top: 14px; background: #1a2138; border: 1.5px solid #d4af37; border-radius: 8px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; padding-top: 30px; gap: 18px; position: relative; }
+  .eye { width: 16px; height: 16px; border-radius: 50%; background: #d4af37; transition: .2s; }
+  .mouth { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 36px; height: 3px; border-radius: 2px; background: linear-gradient(90deg, transparent, #d4af37, transparent); transition: .15s; }
   
-  /* Тексты */
-  .status { font-size: 13px; color: #7f93b5; min-height: 18px; margin-bottom: 14px; }
-  .bubble { background: rgba(120,180,255,.08); border: 1px solid rgba(120,180,255,.2); border-radius: 14px; padding: 12px 14px; font-size: 15px; line-height: 1.45; text-align: left; margin-bottom: 10px; min-height: 44px; color: #cfe1ff; word-break: break-word; }
-  .bubble .label { display: block; font-size: 11px; text-transform: uppercase; color: #5aa8ff; margin-bottom: 4px; }
-  .bubble.reply .label { color: #4dffa6; }
-  .text-input { width: 100%; margin-top: 14px; padding: 11px 14px; border-radius: 12px; border: 1px solid rgba(120,180,255,.25); background: rgba(255,255,255,.04); color: #e8eefc; font-size: 14px; outline: none; }
-  .text-input:focus { border-color: #5aa8ff; }
+  .robot.talking .mouth { animation: talk .3s infinite alternate; }
+  @keyframes talk { from { height: 3px; width: 36px; } to { height: 14px; width: 24px; } }
+  .robot.listening .head { border-color: #4dffa6; }
+  .robot.listening .eye { background: #4dffa6; }
+  
+  /* Кнопка микрофона */
+  .mic-btn { 
+    width: 88px; height: 88px; border-radius: 50%; border: 1.5px solid #d4af37; 
+    cursor: pointer; background: #1a2138; display: flex; align-items: center; justify-content: center; 
+    margin: 0 auto 24px; transition: transform 0.1s; position: relative; z-index: 10;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mic-btn:active { transform: scale(.95); }
+  .mic-btn svg { width: 38px; height: 38px; fill: #d4af37; pointer-events: none; }
+  .mic-btn.active { border-color: #ff5566; animation: pulse 1.4s infinite; }
+  .mic-btn.active svg { fill: #ff5566; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,85,102,.7); } 70% { box-shadow: 0 0 0 25px rgba(255,85,102,0); } 100% { box-shadow: 0 0 0 0 rgba(255,85,102,0); } }
+  
+  /* Статус */
+  .status { font-size: 13px; color: #8a8175; min-height: 20px; margin-bottom: 20px; font-weight: 500; }
+  .status.error { color: #ff5566; font-weight: bold; }
+  .status.thinking { color: #d4af37; }
+  
+  /* Пузыри */
+  .bubble { background: #1a2138; border: 1px solid rgba(212,175,55,0.15); border-radius: 4px; padding: 14px 16px; font-size: 15px; line-height: 1.55; text-align: left; margin-bottom: 12px; min-height: 50px; color: #e8e4d8; word-break: break-word; position: relative; }
+  .bubble .label { display: block; font-size: 10px; text-transform: uppercase; color: #8a8175; margin-bottom: 6px; }
+  .bubble.reply { border-color: rgba(212,175,55,0.35); background: #2a261d; }
+  .bubble.reply .label { color: #d4af37; }
+  
+  /* Ввод */
+  .text-input { width: 100%; margin-top: 18px; padding: 12px 16px; border-radius: 4px; border: 1px solid rgba(212,175,55,.25); background: #0c101e; color: #e8e4d8; font-size: 16px; outline: none; }
+  .text-input:focus { border-color: #d4af37; }
+  .text-input::placeholder { color: #5a5449; }
 </style>
 </head>
 <body>
 
 <div class="card">
-  <h1>🤖 ChugurAI</h1>
-  <p class="subtitle">Твой умный собеседник</p>
+  <h1>ChugurAI</h1>
+  <div class="title-divider"><span>✦</span></div>
+  <p class="subtitle">Твой живой ассистент</p>
 
   <div class="robot" id="robot">
     <div class="antenna"></div>
@@ -56,167 +109,320 @@
     </div>
   </div>
 
-  <button class="mic-btn" id="micBtn" title="Говорить">
+  <!-- onclick привязан напрямую, чтобы кнопка срабатывала 100% -->
+  <button class="mic-btn" id="micBtn" onclick="toggleMic()" type="button">
     <svg viewBox="0 0 24 24">
       <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/>
       <path d="M19 12a7 7 0 0 1-14 0H3a9 9 0 0 0 8 8.94V23h2v-2.06A9 9 0 0 0 21 12h-2z"/>
     </svg>
   </button>
 
-  <div class="status" id="status">Нажми на кнопку или напиши сообщение</div>
+  <div class="status" id="status">Нажмите на микрофон</div>
 
-  <div class="bubble"><span class="label">Ты сказал</span><span id="heardText">—</span></div>
+  <div class="bubble"><span class="label">Вы сказали</span><span id="heardText">—</span></div>
   <div class="bubble reply"><span class="label">ChugurAI</span><span id="replyText">—</span></div>
 
-  <input class="text-input" id="textInput" type="text" placeholder="Напиши сообщение и нажми Enter…" autocomplete="off">
+  <input class="text-input" id="textInput" type="text" placeholder="Напиши сообщение и нажми Enter…" autocomplete="off" onkeydown="handleEnter(event)">
 </div>
 
 <script>
-const micBtn = document.getElementById('micBtn');
-const robot = document.getElementById('robot');
-const statusEl = document.getElementById('status');
-const heardText = document.getElementById('heardText');
-const replyText = document.getElementById('replyText');
-const textInput = document.getElementById('textInput');
+  // Безопасный запуск после загрузки страницы
+  document.addEventListener('DOMContentLoaded', function() {
+    var micBtn = document.getElementById('micBtn');
+    var robot = document.getElementById('robot');
+    var statusEl = document.getElementById('status');
+    var heardText = document.getElementById('heardText');
+    var replyText = document.getElementById('replyText');
+    var textInput = document.getElementById('textInput');
 
-/* ==========================================
-   1. РАСПОЗНАВАНИЕ РЕЧИ (Микрофон)
-   ========================================== */
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition = null;
-let isListening = false;
+    // Таймеры
+    var THINKING_DELAY_SEC = 20; 
+    var COOLDOWN_SEC = 46;       
+    var cooldownEndTime = 0;
+    var cooldownTimer = null;
+    var isRateLimited = false;
+    var isListening = false;
 
-if (SR) {
-  recognition = new SR();
-  recognition.lang = 'ru-RU';
-  recognition.interimResults = false;
-  recognition.continuous = false;
-  recognition.onstart = () => {
-    isListening = true;
-    micBtn.classList.add('active');
-    robot.classList.add('listening');
-    statusEl.textContent = '🎤 Слушаю…';
-  };
-  recognition.onresult = (event) => handleUserText(event.results[0][0].transcript);
-  recognition.onerror = (event) => {
-    statusEl.textContent = event.error === 'not-allowed' ? '❌ Нет доступа к микрофону.' : '🔇 Ошибка: ' + event.error;
-    stopListeningUI();
-  };
-  recognition.onend = () => stopListeningUI();
-} else {
-  statusEl.textContent = '⚠️ Браузер не поддерживает микрофон (используй текст).';
-}
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var recognition = null;
 
-function stopListeningUI() {
-  isListening = false;
-  micBtn.classList.remove('active');
-  robot.classList.remove('listening');
-  if (statusEl.textContent.startsWith('🎤')) statusEl.textContent = 'Нажми на кнопку или напиши сообщение';
-}
+    // Инициализация микрофона
+    if (SR) {
+      try {
+        recognition = new SR();
+        recognition.lang = 'ru-RU';
+        recognition.interimResults = false;
+        recognition.continuous = false;
 
-micBtn.addEventListener('click', () => {
-  if (!recognition) return;
-  if (window.speechSynthesis) speechSynthesis.cancel();
-  if (isListening) { recognition.stop(); return; }
-  try { recognition.start(); } catch (e) {}
-});
+        recognition.onstart = function() {
+          isListening = true;
+          micBtn.classList.add('active');
+          robot.classList.add('listening');
+          statusEl.textContent = '🎤 Слушаю…';
+          statusEl.classList.remove('error', 'thinking');
+        };
 
-/* ==========================================
-   2. СИНТЕЗ РЕЧИ (Голос робота)
-   ========================================== */
-let ruVoice = null;
-function loadVoices() {
-  if (!('speechSynthesis' in window)) return;
-  const voices = speechSynthesis.getVoices();
-  ruVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('ru')) || null;
-}
-loadVoices();
-if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = loadVoices;
+        recognition.onresult = function(event) {
+          var text = event.results[0][0].transcript;
+          if (Date.now() < cooldownEndTime) {
+            showCooldownError();
+            return;
+          }
+          handleUserText(text);
+        };
 
-function speak(text) {
-  if (!('speechSynthesis' in window)) return;
-  speechSynthesis.cancel();
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = 'ru-RU'; utter.rate = 1; utter.pitch = 1.15;
-  if (ruVoice) utter.voice = ruVoice;
-  utter.onstart = () => { robot.classList.add('talking'); statusEl.textContent = '🔊 ChugurAI говорит…'; };
-  utter.onend = () => { robot.classList.remove('talking'); statusEl.textContent = 'Нажми на кнопку или напиши сообщение'; };
-  utter.onerror = () => robot.classList.remove('talking');
-  speechSynthesis.speak(utter);
-}
+        recognition.onerror = function(event) {
+          if (event.error !== 'no-speech' && event.error !== 'aborted') {
+            statusEl.textContent = event.error === 'not-allowed' ? '❌ Нет доступа к микрофону.' : '⚠️ Ошибка: ' + event.error;
+            statusEl.classList.add('error');
+          }
+        };
 
-/* ==========================================
-   3. НЕЙРОСЕТЬ (KeylessAI - Возвращена лучшая)
-   ========================================== */
-async function getAnswer(input) {
-  const systemPrompt = "Ты дружелюбный, умный и немного забавный робот по имени ChugurAI. Отвечай на русском языке кратко (до 3-х предложений), по делу и с легким юмором.";
-  
-  try {
-    // Возвращаем KeylessAI (лучшее качество ответов)
-    const response = await fetch('https://keylessai.thryx.workers.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gpt-4o', // Можно заменить на 'deepseek-chat' при желании
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: input }
-        ]
+        recognition.onend = function() {
+          isListening = false;
+          micBtn.classList.remove('active');
+          robot.classList.remove('listening');
+          if (!isRateLimited && statusEl.className.indexOf('thinking') === -1) {
+            statusEl.textContent = 'Нажмите на микрофон';
+          }
+        };
+      } catch(e) {
+        console.log("Микрофон не инициализирован", e);
+      }
+    }
+
+    // Глобальная функция для кнопки (чтобы onclick сработал)
+    window.toggleMic = function() {
+      if (!recognition) {
+        statusEl.textContent = '⚠️ Микрофон не поддерживается. Пишите текстом.';
+        statusEl.classList.add('error');
+        return;
+      }
+      if (Date.now() < cooldownEndTime) {
+        showCooldownError();
+        return;
+      }
+      if (window.speechSynthesis) speechSynthesis.cancel();
+      
+      if (isListening) {
+        try { recognition.stop(); } catch(e) {}
+        return;
+      }
+      try { 
+        recognition.start(); 
+      } catch (err) {
+        statusEl.textContent = '⚠️ Не удалось включить микрофон.';
+        statusEl.classList.add('error');
+      }
+    };
+
+    // Озвучка (с очисткой и правильным произношением)
+    var bestRuVoice = null;
+    function loadVoices() {
+      try {
+        if (!('speechSynthesis' in window)) return;
+        var availableVoices = speechSynthesis.getVoices();
+        if (!availableVoices || availableVoices.length === 0) return;
+        
+        var ruVoices = availableVoices.filter(function(v) { 
+          return v.lang && v.lang.toLowerCase().indexOf('ru') !== -1; 
+        });
+        
+        if (ruVoices.length > 0) {
+          bestRuVoice = ruVoices[0];
+          for (var i = 0; i < ruVoices.length; i++) {
+            if (/(google|premium|natural|online|dmitry|yuri)/i.test(ruVoices[i].name)) {
+              bestRuVoice = ruVoices[i];
+              break;
+            }
+          }
+        } else {
+          bestRuVoice = availableVoices[0];
+        }
+      } catch(e) {}
+    }
+
+    loadVoices();
+    if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = loadVoices;
+
+    var pronunciationFixes = {
+      "LEGO": "Лего", "IPHONE": "Айфон", "YOUTUBE": "Ютуб", "GOOGLE": "Гугл",
+      "WINDOWS": "Виндоус", "TESLA": "Тесла", "SPOTIFY": "Спотифай", "TIKTOK": "Тикток",
+      "INSTAGRAM": "Инстаграм", "TELEGRAM": "Телеграм", "CHATGPT": "Чат Джи Пи Ти",
+      "WHATSAPP": "Вотсап", "FACEBOOK": "Фейсбук", "TWITTER": "Твиттер"
+    };
+
+    function cleanTextForSpeech(text) {
+      var clean = text;
+      clean = clean.replace(/\*\*/g, '').replace(/\*/g, '').replace(/#/g, '').replace(/_/g, '');
+      clean = clean.replace(/\[(.*?)\]\(.*?\)/g, '$1').replace(/`/g, '');
+      
+      for (var eng in pronunciationFixes) {
+        if (pronunciationFixes.hasOwnProperty(eng)) {
+          var regex = new RegExp('\\b' + eng + '\\b', 'gi');
+          clean = clean.replace(regex, pronunciationFixes[eng]);
+        }
+      }
+      clean = clean.replace(/\b[A-Z]{2,}\b/g, function(match) {
+        return match.charAt(0) + match.slice(1).toLowerCase();
+      });
+      clean = clean.replace(/\u0301/g, "'"); 
+      return clean.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+
+    function speak(text) {
+      if (!('speechSynthesis' in window)) return;
+      speechSynthesis.cancel();
+      
+      var cleanText = cleanTextForSpeech(text);
+      if (!cleanText) return;
+
+      var utter = new SpeechSynthesisUtterance(cleanText);
+      utter.lang = 'ru-RU'; 
+      utter.rate = 0.95; 
+      utter.pitch = 1.0;
+      if (bestRuVoice) utter.voice = bestRuVoice;
+
+      utter.onstart = function() { robot.classList.add('talking'); };
+      utter.onend = function() { robot.classList.remove('talking'); };
+      utter.onerror = function() { robot.classList.remove('talking'); };
+      
+      speechSynthesis.speak(utter);
+    }
+
+    // Запрос к нейросети
+    function getAnswer(input) {
+      var systemPrompt = "Ты — ChugurAI, дружелюбный и умный ассистент. В начале КАЖДОГО ответа обязательно используй обращение: «Да, сэр», «Конечно, сэр», «Слушаюсь, сэр» или «Разумеется, сэр». После этого отвечай обычным, простым, живым языком. Кратко и по делу: 2–4 предложения. Без пафоса, без аристократических оборотов, без сленга и без эмодзи. НЕ ИСПОЛЬЗУЙ маркдаун (никаких звездочек). НИКОГДА не пиши английские слова заглавными буквами.";
+
+      return fetch('https://keylessai.thryx.workers.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: input }
+          ]
+        })
       })
-    });
-
-    // Если сработал лимит (45 сек), обрабатываем это
-    if (response.status === 429) {
-       return "Подожди 45 секунд, я восстанавливаю энергию после прошлого ответа! ⚡";
+      .then(function(response) {
+        if (response.status === 429) return { isLimit: true };
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.json();
+      })
+      .then(function(data) {
+        if (data.isLimit) return data;
+        var reply = data.choices[0].message.content.trim();
+        reply = reply.replace(/\*\*/g, '').replace(/\*/g, '').replace(/#/g, '');
+        return { text: reply };
+      })
+      .catch(function(error) {
+        var fallbackUrl = 'https://text.pollinations.ai/' + encodeURIComponent(input) + '?model=openai&system=' + encodeURIComponent(systemPrompt);
+        return fetch(fallbackUrl)
+          .then(function(res) { return res.text(); })
+          .then(function(text) {
+            if (text.toLowerCase().indexOf('limit') !== -1 && text.toLowerCase().indexOf('seconds') !== -1) {
+              return { isLimit: true };
+            }
+            return { text: text.replace(/\*\*/g, '').replace(/\*/g, '').trim() };
+          })
+          .catch(function() {
+            return { text: "Извините, сэр, связь с сервером прервалась. Попробуйте ещё раз." };
+          });
+      });
     }
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+    // Таймеры
+    function showCooldownError() {
+      isRateLimited = true;
+      if (cooldownTimer) clearInterval(cooldownTimer);
+      
+      var updateCooldownStatus = function() {
+        var left = Math.ceil((cooldownEndTime - Date.now()) / 1000);
+        if (left > 0) {
+          statusEl.classList.add('error');
+          statusEl.classList.remove('thinking');
+          statusEl.textContent = 'Слишком быстро! Ждем: ' + left + 'с';
+        } else {
+          clearInterval(cooldownTimer);
+          cooldownTimer = null;
+          statusEl.classList.remove('error');
+          isRateLimited = false;
+          statusEl.textContent = 'Готов помочь, сэр';
+        }
+      };
+      updateCooldownStatus();
+      cooldownTimer = setInterval(updateCooldownStatus, 1000);
     }
 
-    const data = await response.json();
-    return data.choices[0].message.content.trim();
-
-  } catch (error) {
-    console.error('Ошибка KeylessAI:', error);
-    
-    // Если KeylessAI совсем упал, пробуем резервный вариант
-    try {
-      const fallback = await fetch(`https://text.pollinations.ai/${encodeURIComponent(input)}?model=openai&system=${encodeURIComponent(systemPrompt)}`);
-      return (await fallback.text()).trim();
-    } catch (fallbackError) {
-      return 'Прости, мой искусственный интеллект временно недоступен. Попробуй позже.';
+    function startCooldown() {
+      cooldownEndTime = Date.now() + (COOLDOWN_SEC * 1000);
+      if (cooldownTimer) clearInterval(cooldownTimer);
     }
-  }
-}
 
-/* ==========================================
-   4. ЛОГИКА ДИАЛОГА
-   ========================================== */
-function handleUserText(rawText) {
-  const text = rawText.trim();
-  if (!text) return;
-  
-  heardText.textContent = text;
-  replyText.textContent = '…';
-  statusEl.textContent = '💭 Думаю…';
+    function handleUserText(rawText) {
+      var text = rawText.trim();
+      if (!text) return;
+      
+      heardText.textContent = text;
+      replyText.textContent = '…';
+      
+      startCooldown();
 
-  getAnswer(text).then(answer => {
-    replyText.textContent = answer;
-    setTimeout(() => speak(answer), 150);
+      var visualTime = THINKING_DELAY_SEC;
+      statusEl.classList.remove('error');
+      statusEl.classList.add('thinking');
+      statusEl.textContent = 'Анализирую запрос... (' + visualTime + 'с)';
+
+      var visualTimer = setInterval(function() {
+        visualTime--;
+        if (visualTime > 0) {
+          statusEl.textContent = 'Анализирую запрос... (' + visualTime + 'с)';
+        } else {
+          statusEl.textContent = 'Получаю ответ...';
+          clearInterval(visualTimer);
+        }
+      }, 1000);
+
+      var apiRequest = getAnswer(text);
+      var minWait = new Promise(function(resolve) { setTimeout(resolve, THINKING_DELAY_SEC * 1000); });
+
+      Promise.all([apiRequest, minWait]).then(function(results) {
+        var result = results[0];
+        clearInterval(visualTimer);
+
+        if (result.isLimit) {
+          replyText.textContent = "Подождите, сэр...";
+          if (Date.now() >= cooldownEndTime) {
+            cooldownEndTime = Date.now() + 45000;
+          }
+          showCooldownError();
+        } else {
+          replyText.textContent = result.text;
+          if (Date.now() >= cooldownEndTime) {
+            statusEl.classList.remove('thinking');
+            statusEl.textContent = 'Готов помочь, сэр';
+          }
+          setTimeout(function() { speak(result.text); }, 150);
+        }
+      });
+    }
+
+    // Обработка клавиши Enter
+    window.handleEnter = function(e) {
+      if (e.key === 'Enter') {
+        var val = textInput.value.trim();
+        if (!val) return;
+        if (Date.now() < cooldownEndTime) {
+          showCooldownError();
+          return;
+        }
+        if (window.speechSynthesis) speechSynthesis.cancel();
+        handleUserText(val);
+        textInput.value = '';
+      }
+    };
   });
-}
-
-// Обработка ввода с клавиатуры
-textInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    const val = textInput.value.trim();
-    if (!val) return;
-    if (window.speechSynthesis) speechSynthesis.cancel();
-    handleUserText(val);
-    textInput.value = '';
-  }
-});
 </script>
 </body>
 </html>
