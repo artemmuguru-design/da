@@ -3,179 +3,363 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>ChugurAI — Neural Assistant</title>
+<title>ChugurAI — Messenger</title>
 
-<!-- Подключение Google Identity Services -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  
   body {
-    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
     font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background-color: #000000; color: #ffffff; padding: 20px; overflow-x: hidden; touch-action: manipulation;
+    background-color: #000000;
+    color: #ffffff;
+    overflow: hidden;
+    touch-action: manipulation;
   }
-  .card {
-    position: relative; width: 100%; max-width: 460px; background: #0a0a0a;
-    border: 1px solid #222; border-radius: 24px; padding: 40px 30px 30px;
-    text-align: center; box-shadow: 0 20px 60px rgba(255, 255, 255, 0.03);
+
+  /* ============================================================
+     ВЕРХНЯЯ ПАНЕЛЬ
+     ============================================================ */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 15px;
+    background: #0a0a0a;
+    border-bottom: 1px solid #222;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  .left-controls { display: flex; align-items: center; gap: 15px; }
+  .menu-btn { background: transparent; border: none; color: #fff; font-size: 24px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+  /* Робот в шапке */
+  .robot-mini { width: 45px; height: 45px; position: relative; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform 0.2s; }
+  .robot-mini:active { transform: scale(0.9); }
+  .robot-mini .head { width: 45px; height: 40px; background: #111; border: 1.5px solid #444; border-radius: 10px; display: flex; justify-content: center; align-items: center; padding-top: 8px; gap: 6px; transition: 0.3s; }
+  .robot-mini .eye { width: 8px; height: 8px; border-radius: 50%; background: #fff; }
+  .robot-mini .mouth { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 14px; height: 2px; background: #fff; border-radius: 2px; opacity: 0.5; }
+
+  .profile-area { display: flex; align-items: center; gap: 8px; }
+  .user-avatar { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #444; }
+  .logout-btn { background: transparent; border: 1px solid #444; color: #888; font-size: 10px; padding: 4px 8px; border-radius: 6px; cursor: pointer; }
+
+  /* ============================================================
+     ОБЛАСТЬ ЧАТА
+     ============================================================ */
+  .chat-container {
+    flex: 1; overflow-y: auto; padding: 15px;
+    display: flex; flex-direction: column; gap: 10px;
+    scroll-behavior: smooth; background: #000;
+  }
+
+  .message {
+    max-width: 80%; padding: 12px 16px; border-radius: 16px;
+    font-size: 15px; line-height: 1.4; word-wrap: break-word;
+    animation: popIn 0.2s ease-out;
+  }
+  @keyframes popIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .message.user { align-self: flex-end; background: #ffffff; color: #000000; border-bottom-right-radius: 4px; }
+  .message.ai { align-self: flex-start; background: #1a1a1a; color: #ffffff; border: 1px solid #333; border-bottom-left-radius: 4px; }
+  .message img { width: 100%; border-radius: 8px; margin-top: 8px; display: block; }
+
+  .thinking-bubble { display: flex; align-items: center; gap: 8px; }
+  .typing-indicator { display: flex; gap: 4px; align-items: center; height: 20px; }
+  .typing-indicator span { width: 6px; height: 6px; background-color: #888; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+  .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+  .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+  @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+  .thinking-text { font-size: 11px; color: #888; font-style: italic; }
+
+  .cooldown-alert {
+    align-self: center; background: rgba(255, 85, 85, 0.1); border: 1px solid rgba(255, 85, 85, 0.3);
+    color: #ff5555; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600;
+    margin: 5px 0; text-align: center; animation: popIn 0.3s;
+  }
+
+  /* ============================================================
+     НИЖНЯЯ ПАНЕЛЬ ВВОДА
+     ============================================================ */
+  .input-area {
+    padding: 10px 15px 20px; background: #0a0a0a; border-top: 1px solid #222;
+    display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0; z-index: 10;
+  }
+
+  .chat-input {
+    flex: 1; background: #1a1a1a; border: 1px solid #333; border-radius: 20px;
+    padding: 12px 16px; color: #fff; font-size: 15px; font-family: inherit;
+    resize: none; outline: none; max-height: 100px; min-height: 44px; line-height: 1.4;
+  }
+  .chat-input:focus { border-color: #666; }
+
+  .send-btn {
+    width: 44px; height: 44px; border-radius: 50%; background: #fff; border: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0; transition: 0.2s;
+  }
+  .send-btn:active { transform: scale(0.9); }
+  .send-btn svg { width: 20px; height: 20px; fill: #000; margin-left: -2px; }
+
+  /* ============================================================
+     ИНТЕРФЕЙС ГОЛОСОВОГО РОБОТА (Оверлей)
+     ============================================================ */
+  #voiceInterface {
+    position: fixed; inset: 0; background: #000000; z-index: 2000;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.4s ease;
+  }
+  #voiceInterface.open { opacity: 1; pointer-events: auto; }
+
+  .close-voice-btn {
+    position: absolute; top: 20px; right: 20px;
+    background: transparent; border: 1px solid #333; color: #fff; font-size: 20px;
+    width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .close-voice-btn:active { background: #222; }
+
+  .robot-large { width: 180px; height: 180px; position: relative; margin-bottom: 40px; filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.1)); transition: 0.3s; }
+  .robot-large .head { width: 180px; height: 160px; background: #111; border: 3px solid #444; border-radius: 30px; display: flex; justify-content: center; align-items: center; padding-top: 30px; gap: 25px; transition: 0.3s; }
+  .robot-large .eye { width: 25px; height: 25px; border-radius: 50%; background: #fff; transition: 0.3s; }
+  .robot-large .mouth { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 50px; height: 4px; background: #fff; border-radius: 2px; opacity: 0.5; transition: 0.3s; }
+  
+  .robot-large.listening .head { border-color: #4dffa6; box-shadow: 0 0 50px rgba(77, 255, 166, 0.3); }
+  .robot-large.listening .eye { background: #4dffa6; box-shadow: 0 0 20px #4dffa6; }
+  .robot-large.listening .mouth { background: #4dffa6; opacity: 1; }
+  
+  .robot-large.talking .mouth { animation: talkLarge 0.3s infinite alternate; opacity: 1; }
+  @keyframes talkLarge { from { height: 4px; width: 50px; } to { height: 20px; width: 30px; } }
+
+  .voice-status { font-size: 15px; color: #888; margin-bottom: 40px; font-weight: 500; letter-spacing: 1px; transition: 0.3s; text-align: center; }
+  .voice-status.listening { color: #4dffa6; text-shadow: 0 0 10px rgba(77, 255, 166, 0.5); }
+  .voice-status.error { color: #ff5555; }
+
+  .voice-controls { position: absolute; bottom: 50px; display: flex; align-items: center; gap: 30px; }
+
+  .voice-mic-btn {
+    width: 90px; height: 90px; border-radius: 50%; border: 2px solid #444;
+    background: #111; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.3s; -webkit-tap-highlight-color: transparent;
+  }
+  .voice-mic-btn svg { width: 40px; height: 40px; fill: #fff; transition: 0.3s; }
+  .voice-mic-btn.active { border-color: #ff5566; background: rgba(255, 85, 102, 0.1); animation: pulseVoiceMic 1.5s infinite; }
+  .voice-mic-btn.active svg { fill: #ff5566; }
+  @keyframes pulseVoiceMic { 0% { box-shadow: 0 0 0 0 rgba(255,85,102,0.4); } 70% { box-shadow: 0 0 0 25px rgba(255,85,102,0); } 100% { box-shadow: 0 0 0 0 rgba(255,85,102,0); } }
+
+  .switch-text-btn {
+    background: #1a1a1a; border: 1px solid #333; color: #fff;
+    padding: 12px 20px; border-radius: 20px; font-size: 14px;
+    cursor: pointer; font-weight: 600; transition: 0.2s;
+  }
+  .switch-text-btn:active { background: #333; }
+
+  /* ============================================================
+     ПЛАВАЮЩАЯ КНОПКА РОБОТА
+     ============================================================ */
+  #floatingVoiceBtn {
+    position: fixed;
+    width: 65px; height: 65px;
+    background: radial-gradient(circle at 30% 30%, #2a2a2a, #0a0a0a);
+    border: 2px solid #5aa8ff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px;
+    box-shadow: 0 0 20px rgba(90, 168, 255, 0.3), inset 0 0 15px rgba(90, 168, 255, 0.1);
+    z-index: 1500;
+    cursor: grab;
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.5);
+    transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s;
+    touch-action: none; /* Запрещаем скролл при перетаскивании */
+    
+    /* Начальная позиция */
+    bottom: 100px;
+    right: 20px;
   }
   
-  /* Шапка профиля */
-  .auth-header {
-    position: absolute; top: 15px; right: 15px; display: flex; align-items: center; gap: 10px;
+  #floatingVoiceBtn.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: scale(1);
   }
-  .user-avatar { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #444; }
-  .user-name { font-size: 13px; color: #aaa; max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .logout-btn {
-    background: transparent; border: 1px solid #444; color: #888; font-size: 11px;
-    padding: 4px 8px; border-radius: 8px; cursor: pointer; transition: 0.2s;
+
+  #floatingVoiceBtn:active {
+    cursor: grabbing;
+    box-shadow: 0 0 30px rgba(90, 168, 255, 0.6);
   }
-  .logout-btn:hover { border-color: #ff5555; color: #ff5555; }
+  
+  #floatingVoiceBtn .robot-eye {
+    width: 6px; height: 6px; border-radius: 50%; background: #fff; box-shadow: 0 0 5px #fff;
+  }
 
-  /* Контейнер для кнопки Google */
-  #googleBtnContainer { display: flex; justify-content: center; margin-bottom: 20px; }
+  /* ============================================================
+     БОКОВОЕ МЕНЮ И АВТОРИЗАЦИЯ
+     ============================================================ */
+  .sidebar {
+    position: absolute; top: 0; left: -100%; width: 80%; height: 100%;
+    background: #0a0a0a; border-right: 1px solid #333; z-index: 100;
+    transition: left 0.3s ease; display: flex; flex-direction: column; padding: 15px;
+  }
+  .sidebar.open { left: 0; }
+  .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+  .sidebar-header span { font-size: 14px; font-weight: bold; color: #aaa; }
+  .new-chat-btn { background: #fff; color: #000; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; }
+  
+  .chat-list { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+  .chat-item { display: flex; justify-content: space-between; align-items: center; background: #1a1a1a; padding: 12px; border-radius: 8px; font-size: 13px; cursor: pointer; border: 1px solid transparent; }
+  .chat-item.active { border-color: #555; background: #222; }
+  .chat-title-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 65%; }
+  .chat-actions { display: flex; gap: 5px; }
+  .chat-actions button { background: transparent; border: none; color: #888; cursor: pointer; font-size: 14px; }
+  
+  .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.7); z-index: 50; display: none; }
+  .overlay.open { display: block; }
 
-  h1 { font-size: 24px; font-weight: 700; letter-spacing: 6px; color: #ffffff; text-transform: uppercase; margin-bottom: 6px; }
-  .subtitle { font-size: 12px; color: #888888; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 36px; font-weight: 500; }
-
-  /* Робот */
-  .robot { width: 110px; height: 110px; margin: 0 auto 30px; position: relative; pointer-events: none; }
-  .antenna { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); width: 2px; height: 20px; background: #ffffff; }
-  .antenna::after { content: ""; position: absolute; top: -8px; left: 50%; transform: translateX(-50%); width: 8px; height: 8px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
-  .head { width: 110px; height: 96px; margin-top: 12px; background: #111111; border: 2px solid #333333; border-radius: 20px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; padding-top: 24px; gap: 16px; position: relative; transition: border-color 0.3s, box-shadow 0.3s; }
-  .eye { width: 14px; height: 14px; border-radius: 50%; background: #ffffff; transition: 0.3s; }
-  .mouth { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 32px; height: 3px; border-radius: 2px; background: #ffffff; transition: 0.15s; opacity: 0.7; }
-  .robot.talking .mouth { animation: talk 0.3s infinite alternate; opacity: 1; }
-  @keyframes talk { from { height: 3px; width: 32px; } to { height: 12px; width: 20px; } }
-  .robot.listening .head { border-color: #ffffff; box-shadow: 0 0 20px rgba(255, 255, 255, 0.1); }
-  .robot.listening .eye { background: #888888; transform: scale(1.2); }
-
-  /* Кнопка микрофона */
-  .mic-btn { width: 80px; height: 80px; border-radius: 50%; border: 1.5px solid #444; cursor: pointer; background: transparent; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; transition: all 0.3s ease; position: relative; z-index: 10; -webkit-tap-highlight-color: transparent; }
-  .mic-btn:hover { border-color: #ffffff; background: rgba(255, 255, 255, 0.03); }
-  .mic-btn:active { transform: scale(0.95); }
-  .mic-btn svg { width: 32px; height: 32px; fill: #ffffff; pointer-events: none; transition: fill 0.3s; }
-  .mic-btn.active { background: #ffffff; border-color: #ffffff; animation: pulseMic 1.5s infinite; }
-  .mic-btn.active svg { fill: #000000; }
-  @keyframes pulseMic { 0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.3); } 70% { box-shadow: 0 0 0 20px rgba(255, 255, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); } }
-
-  /* Статус */
-  .status { font-size: 13px; color: #888888; min-height: 20px; margin-bottom: 24px; font-weight: 500; letter-spacing: 0.5px; transition: 0.3s; }
-  .status.error { color: #ff5555; }
-  .status.thinking { color: #ffffff; animation: pulseText 1.5s infinite; }
-  @keyframes pulseText { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-
-  /* Пузыри */
-  .bubble { background: #111111; border: 1px solid #222222; border-radius: 16px; padding: 16px 20px; font-size: 15px; line-height: 1.5; text-align: left; margin-bottom: 12px; min-height: 60px; color: #aaaaaa; word-break: break-word; position: relative; transition: 0.3s; }
-  .bubble .label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #666666; margin-bottom: 8px; font-weight: 600; }
-  .bubble.reply { border-color: #444444; background: #000000; color: #ffffff; }
-  .bubble.reply .label { color: #ffffff; }
-
-  /* Картинка */
-  #imgContainer { display: none; margin-top: 12px; border-radius: 12px; overflow: hidden; border: 1px solid #333; }
-  #imgContainer img { width: 100%; height: auto; display: block; }
-
-  /* Ввод */
-  .text-input { width: 100%; margin-top: 20px; padding: 14px 20px; border-radius: 16px; border: 1px solid #333333; background: #000000; color: #ffffff; font-size: 15px; font-family: inherit; outline: none; transition: 0.3s; }
-  .text-input:focus { border-color: #ffffff; box-shadow: 0 0 15px rgba(255, 255, 255, 0.05); }
-  .text-input::placeholder { color: #555555; }
-
+  #authScreen { position: fixed; inset: 0; background: #000; z-index: 3000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+  .auth-title { font-size: 24px; font-weight: bold; margin-bottom: 10px; letter-spacing: 4px; }
+  .auth-subtitle { font-size: 12px; color: #888; margin-bottom: 30px; letter-spacing: 2px; text-transform: uppercase; }
+  #googleBtnContainer { margin-bottom: 20px; }
+  .reset-btn { background: transparent; border: none; color: #555; font-size: 11px; margin-top: 15px; cursor: pointer; text-decoration: underline; }
+  
   .hidden { display: none !important; }
 </style>
 </head>
 <body>
 
-<div class="card">
-  <!-- Шапка профиля -->
-  <div class="auth-header hidden" id="userProfile">
-    <img id="userAvatar" class="user-avatar" src="" alt="Avatar">
-    <span id="userName" class="user-name"></span>
-    <button class="logout-btn" id="logoutBtn">Выйти</button>
-  </div>
-
-  <h1>ChugurAI</h1>
-  <p class="subtitle">Neural Assistant</p>
-
-  <!-- Контейнер для кнопки Google (Экран входа) -->
+<div id="authScreen">
+  <div class="auth-title">CHUGURAI</div>
+  <div class="auth-subtitle">Neural Assistant</div>
   <div id="googleBtnContainer"></div>
+  <button class="reset-btn" id="resetBtn">Очистить данные и перезагрузить</button>
+</div>
 
-  <!-- Основной интерфейс (скрыт до входа) -->
-  <div id="mainApp" class="hidden">
-    <div class="robot" id="robot">
-      <div class="antenna"></div>
-      <div class="head">
-        <div class="eye"></div>
-        <div class="eye"></div>
-        <div class="mouth"></div>
+<div id="mainApp" class="hidden" style="display: flex; flex-direction: column; height: 100%;">
+  
+  <div class="top-bar">
+    <div class="left-controls">
+      <button class="menu-btn" id="menuBtn">☰</button>
+      <div class="robot-mini" id="openVoiceBtn">
+        <div class="head">
+          <div class="eye"></div>
+          <div class="eye"></div>
+          <div class="mouth"></div>
+        </div>
       </div>
     </div>
 
-    <button class="mic-btn" id="micBtn" type="button">
+    <div class="profile-area" id="userProfile">
+      <img id="userAvatar" class="user-avatar" src="" alt="Avatar">
+      <button class="logout-btn" id="logoutBtn">Выйти</button>
+    </div>
+  </div>
+
+  <div class="chat-container" id="chatContainer"></div>
+
+  <div class="input-area">
+    <textarea class="chat-input" id="textInput" placeholder="Сообщение..." rows="1"></textarea>
+    <button class="send-btn" id="sendBtn">
+      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+
+</div>
+
+<!-- ГОЛОСОВОЙ ИНТЕРФЕЙС -->
+<div id="voiceInterface">
+  <button class="close-voice-btn" id="closeVoiceBtn">✕</button>
+  
+  <div class="robot-large" id="robotLarge">
+    <div class="head">
+      <div class="eye"></div>
+      <div class="eye"></div>
+      <div class="mouth"></div>
+    </div>
+  </div>
+  
+  <div class="voice-status" id="voiceStatus">Нажмите на микрофон, чтобы говорить</div>
+
+  <div class="voice-controls">
+    <button class="voice-mic-btn" id="voiceMicBtn">
       <svg viewBox="0 0 24 24">
         <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/>
         <path d="M19 12a7 7 0 0 1-14 0H3a9 9 0 0 0 8 8.94V23h2v-2.06A9 9 0 0 0 21 12h-2z"/>
       </svg>
     </button>
-
-    <div class="status" id="status">Нажмите на микрофон или напишите</div>
-
-    <div class="bubble"><span class="label">Вы сказали</span><span id="heardText">—</span></div>
-    
-    <div class="bubble reply">
-      <span class="label">ChugurAI</span>
-      <span id="replyText">—</span>
-      <div id="imgContainer"><img id="generatedImg" alt="Сгенерированное изображение"></div>
-    </div>
-
-    <input class="text-input" id="textInput" type="text" placeholder="Напиши или попроси нарисовать..." autocomplete="off">
+    <button class="switch-text-btn" id="switchToTextBtn">Ввести текст</button>
   </div>
+</div>
+
+<!-- ПЛАВАЮЩАЯ КНОПКА -->
+<div id="floatingVoiceBtn" class="hidden">
+  <!-- Иконка внутри (глаз робота) -->
+  <div class="robot-eye"></div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <span>Ваши чаты</span>
+    <button class="new-chat-btn" id="newChatBtn">+ Новый</button>
+  </div>
+  <div class="chat-list" id="chatList"></div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   
-  // ============================================================
-  // 1. АВТОРИЗАЦИЯ GOOGLE
-  // ============================================================
-  var googleBtnContainer = document.getElementById('googleBtnContainer');
-  var userProfile = document.getElementById('userProfile');
-  var userAvatar = document.getElementById('userAvatar');
-  var userName = document.getElementById('userName');
-  var logoutBtn = document.getElementById('logoutBtn');
+  // --- ЭЛЕМЕНТЫ ---
+  var authScreen = document.getElementById('authScreen');
   var mainApp = document.getElementById('mainApp');
+  var googleBtnContainer = document.getElementById('googleBtnContainer');
+  var resetBtn = document.getElementById('resetBtn');
+  var userAvatar = document.getElementById('userAvatar');
+  var logoutBtn = document.getElementById('logoutBtn');
+  
+  var chatContainer = document.getElementById('chatContainer');
+  var textInput = document.getElementById('textInput');
+  var sendBtn = document.getElementById('sendBtn');
+  
+  var menuBtn = document.getElementById('menuBtn');
+  var sidebar = document.getElementById('sidebar');
+  var overlay = document.getElementById('overlay');
+  var chatListEl = document.getElementById('chatList');
+  var newChatBtn = document.getElementById('newChatBtn');
 
-  // Твой Client ID
+  var voiceInterface = document.getElementById('voiceInterface');
+  var openVoiceBtn = document.getElementById('openVoiceBtn');
+  var closeVoiceBtn = document.getElementById('closeVoiceBtn');
+  var voiceMicBtn = document.getElementById('voiceMicBtn');
+  var switchToTextBtn = document.getElementById('switchToTextBtn');
+  var robotLarge = document.getElementById('robotLarge');
+  var voiceStatus = document.getElementById('voiceStatus');
+  
+  var floatingVoiceBtn = document.getElementById('floatingVoiceBtn');
+
   var GOOGLE_CLIENT_ID = "863049198588-ih96igl85cfvn8jtbg7rntispkn1m0m2.apps.googleusercontent.com";
 
-  function signOut() {
-    localStorage.removeItem('chugur_user');
-    userProfile.classList.add('hidden');
-    mainApp.classList.add('hidden');
-    googleBtnContainer.classList.remove('hidden');
-    if (window.google && google.accounts && google.accounts.id) {
-      google.accounts.id.disableAutoSelect();
-    }
-  }
+  var currentUserEmail = "";
+  var chats = [];
+  var currentChatId = null;
+  var cooldownAlertEl = null;
+  var isProcessingVoice = false; 
 
-  logoutBtn.addEventListener('click', signOut);
+  // --- АВТОРИЗАЦИЯ ---
+  resetBtn.addEventListener('click', function() { localStorage.clear(); location.reload(); });
+  logoutBtn.addEventListener('click', function() { localStorage.removeItem('chugur_user'); location.reload(); });
 
-  // Проверка сохраненного пользователя
   var savedUser = localStorage.getItem('chugur_user');
   if (savedUser) {
-    try {
-      var user = JSON.parse(savedUser);
-      userAvatar.src = user.picture;
-      userName.textContent = user.name;
-      userProfile.classList.remove('hidden');
-      mainApp.classList.remove('hidden');
-      googleBtnContainer.classList.add('hidden');
-    } catch(e) {
-      localStorage.removeItem('chugur_user');
-    }
+    try { startApp(JSON.parse(savedUser)); } catch(e) { localStorage.removeItem('chugur_user'); }
   }
 
-  // Обработка ответа от Google
   window.handleCredentialResponse = function(response) {
     var base64Url = response.credential.split('.')[1];
     var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -184,52 +368,249 @@ document.addEventListener('DOMContentLoaded', function() {
     }).join(''));
     
     var user = JSON.parse(jsonPayload);
-    
-    localStorage.setItem('chugur_user', JSON.stringify({
-      name: user.name,
-      email: user.email,
-      picture: user.picture
-    }));
-
-    userAvatar.src = user.picture;
-    userName.textContent = user.name;
-    userProfile.classList.remove('hidden');
-    mainApp.classList.remove('hidden');
-    googleBtnContainer.classList.add('hidden');
+    localStorage.setItem('chugur_user', JSON.stringify({ name: user.name, email: user.email, picture: user.picture }));
+    startApp(user);
   };
 
-  // Инициализация кнопки Google
   function initGoogleSignIn() {
     if (typeof google !== 'undefined' && google.accounts) {
-      google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: window.handleCredentialResponse
-      });
-      google.accounts.id.renderButton(
-        googleBtnContainer,
-        { theme: "outline", size: "large", text: "signin_with", shape: "pill" }
-      );
-    } else {
-      setTimeout(initGoogleSignIn, 100);
+      google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: window.handleCredentialResponse });
+      google.accounts.id.renderButton(googleBtnContainer, { theme: "outline", size: "large", text: "signin_with", shape: "pill" });
+    } else { setTimeout(initGoogleSignIn, 100); }
+  }
+  if (!savedUser) initGoogleSignIn();
+
+  function startApp(user) {
+    currentUserEmail = user.email;
+    userAvatar.src = user.picture;
+    authScreen.classList.add('hidden');
+    mainApp.classList.remove('hidden');
+    loadUserChats();
+  }
+
+  // --- ЧАТЫ ---
+  function loadUserChats() {
+    try {
+      var storedChats = localStorage.getItem('chugur_chats_' + currentUserEmail);
+      if (storedChats) {
+        chats = JSON.parse(storedChats);
+        if (chats.length === 0) createNewChat();
+        else loadChat(chats[0].id);
+      } else { createNewChat(); }
+    } catch(e) { createNewChat(); }
+  }
+
+  function saveChats() {
+    if (currentUserEmail) localStorage.setItem('chugur_chats_' + currentUserEmail, JSON.stringify(chats));
+  }
+
+  function createNewChat() {
+    var newChat = { id: 'chat_' + Date.now(), title: 'Чат ' + (chats.length + 1), messages: [] };
+    chats.unshift(newChat);
+    saveChats();
+    loadChat(newChat.id);
+    closeSidebar();
+  }
+
+  function loadChat(id) {
+    currentChatId = id;
+    var chat = chats.find(function(c) { return c.id === id; });
+    if (!chat) return;
+    
+    chatContainer.innerHTML = '';
+    chat.messages.forEach(function(msg) {
+      renderMessage(msg.role, msg.content, msg.imageUrl);
+    });
+    
+    scrollToBottom();
+    renderChatList();
+  }
+
+  function renderMessage(role, text, imageUrl) {
+    var div = document.createElement('div');
+    div.className = 'message ' + (role === 'user' ? 'user' : 'ai');
+    if (text) {
+      var textNode = document.createElement('div');
+      textNode.textContent = text;
+      div.appendChild(textNode);
+    }
+    if (imageUrl) {
+      var img = document.createElement('img');
+      img.src = imageUrl;
+      div.appendChild(img);
+    }
+    chatContainer.appendChild(div);
+    scrollToBottom();
+    return div;
+  }
+
+  function scrollToBottom() {
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  }
+
+  function renderChatList() {
+    chatListEl.innerHTML = '';
+    chats.forEach(function(chat) {
+      var el = document.createElement('div');
+      el.className = 'chat-item' + (chat.id === currentChatId ? ' active' : '');
+      var titleSpan = document.createElement('span');
+      titleSpan.className = 'chat-title-text';
+      titleSpan.textContent = chat.title;
+      var actions = document.createElement('div');
+      actions.className = 'chat-actions';
+      var editBtn = document.createElement('button');
+      editBtn.innerHTML = '✎';
+      editBtn.onclick = function(e) {
+        e.stopPropagation();
+        var newTitle = prompt('Название чата:', chat.title);
+        if (newTitle && newTitle.trim()) { chat.title = newTitle.trim(); saveChats(); renderChatList(); }
+      };
+      var delBtn = document.createElement('button');
+      delBtn.innerHTML = '✕';
+      delBtn.onclick = function(e) {
+        e.stopPropagation();
+        if (confirm('Удалить этот чат?')) {
+          chats = chats.filter(function(c) { return c.id !== chat.id; });
+          if (currentChatId === chat.id) {
+            if (chats.length > 0) loadChat(chats[0].id);
+            else createNewChat();
+          } else { saveChats(); renderChatList(); }
+        }
+      };
+      actions.appendChild(editBtn); actions.appendChild(delBtn);
+      el.appendChild(titleSpan); el.appendChild(actions);
+      el.onclick = function() { loadChat(chat.id); closeSidebar(); };
+      chatListEl.appendChild(el);
+    });
+  }
+
+  menuBtn.onclick = function() { sidebar.classList.add('open'); overlay.classList.add('open'); renderChatList(); };
+  overlay.onclick = closeSidebar;
+  newChatBtn.onclick = createNewChat;
+  function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('open'); }
+
+  // --- ГОЛОСОВОЙ ИНТЕРФЕЙС ---
+  function openVoiceInterface() {
+    voiceInterface.classList.add('open');
+    floatingVoiceBtn.classList.remove('show');
+    setTimeout(function() { floatingVoiceBtn.classList.add('hidden'); }, 300);
+
+    if (!isProcessingVoice) {
+      voiceStatus.textContent = 'Нажмите на микрофон, чтобы говорить';
+      voiceStatus.className = 'voice-status';
     }
   }
 
-  if (!savedUser) {
-    initGoogleSignIn();
+  function closeVoiceInterface() {
+    voiceInterface.classList.remove('open');
+    if (recognition && isListening) {
+      try { recognition.stop(); } catch(e) {}
+    }
   }
 
-  // ============================================================
-  // 2. ЛОГИКА ИИ (ЧАТ И КАРТИНКИ)
-  // ============================================================
-  var micBtn = document.getElementById('micBtn');
-  var robot = document.getElementById('robot');
-  var statusEl = document.getElementById('status');
-  var heardText = document.getElementById('heardText');
-  var replyText = document.getElementById('replyText');
-  var textInput = document.getElementById('textInput');
-  var imgContainer = document.getElementById('imgContainer');
-  var generatedImg = document.getElementById('generatedImg');
+  openVoiceBtn.onclick = openVoiceInterface;
+  
+  // Крестик просто закрывает
+  closeVoiceBtn.onclick = closeVoiceInterface;
 
+  // Кнопка "Ввести текст" показывает плавающую кнопку
+  switchToTextBtn.onclick = function() {
+    closeVoiceInterface();
+    textInput.focus();
+    
+    // Показываем плавающую кнопку
+    floatingVoiceBtn.classList.remove('hidden');
+    // Небольшая задержка для срабатывания CSS-анимации
+    setTimeout(function() {
+      floatingVoiceBtn.classList.add('show');
+    }, 10);
+  };
+
+  // --- ЛОГИКА ПЕРЕТАСКИВАНИЯ (DRAG & DROP) ---
+  var isDragging = false;
+  var startX, startY, initialX, initialY;
+  
+  floatingVoiceBtn.addEventListener('touchstart', dragStart, {passive: false});
+  floatingVoiceBtn.addEventListener('touchend', dragEnd);
+  floatingVoiceBtn.addEventListener('touchmove', drag, {passive: false});
+  
+  floatingVoiceBtn.addEventListener('mousedown', dragStart);
+  document.addEventListener('mousemove', drag);
+  document.addEventListener('mouseup', dragEnd);
+
+  function dragStart(e) {
+      if (e.type === 'touchstart') {
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+      } else {
+          startX = e.clientX;
+          startY = e.clientY;
+          e.preventDefault();
+      }
+      
+      var rect = floatingVoiceBtn.getBoundingClientRect();
+      initialX = rect.left;
+      initialY = rect.top;
+      
+      floatingVoiceBtn.style.bottom = 'auto';
+      floatingVoiceBtn.style.right = 'auto';
+      floatingVoiceBtn.style.left = initialX + 'px';
+      floatingVoiceBtn.style.top = initialY + 'px';
+      floatingVoiceBtn.style.transition = 'none'; 
+
+      isDragging = false; 
+  }
+
+  function drag(e) {
+      if (startX === undefined || startY === undefined) return;
+      
+      var clientX, clientY;
+      if (e.type === 'touchmove') {
+          clientX = e.touches[0].clientX;
+          clientY = e.touches[0].clientY;
+          e.preventDefault(); 
+      } else {
+          clientX = e.clientX;
+          clientY = e.clientY;
+      }
+
+      var dx = clientX - startX;
+      var dy = clientY - startY;
+
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+          isDragging = true;
+      }
+
+      if (isDragging) {
+          var newX = initialX + dx;
+          var newY = initialY + dy;
+
+          var maxX = window.innerWidth - floatingVoiceBtn.offsetWidth;
+          var maxY = window.innerHeight - floatingVoiceBtn.offsetHeight;
+
+          newX = Math.max(0, Math.min(newX, maxX));
+          newY = Math.max(0, Math.min(newY, maxY));
+
+          floatingVoiceBtn.style.left = newX + 'px';
+          floatingVoiceBtn.style.top = newY + 'px';
+      }
+  }
+
+  function dragEnd(e) {
+      startX = undefined;
+      startY = undefined;
+      floatingVoiceBtn.style.transition = 'transform 0.2s, opacity 0.3s, box-shadow 0.3s, background 0.3s';
+      
+      setTimeout(function() { isDragging = false; }, 50);
+  }
+
+  // Клик по плавающей кнопке (открывает чат, если не было перетаскивания)
+  floatingVoiceBtn.onclick = function(e) {
+      if (isDragging) return; // Игнорируем клик, если только что перетащили
+      openVoiceInterface();
+  };
+
+  // --- ЛОГИКА ИИ ---
   var THINKING_DELAY_SEC = 20; 
   var COOLDOWN_SEC = 46;       
   var cooldownEndTime = 0;
@@ -240,7 +621,6 @@ document.addEventListener('DOMContentLoaded', function() {
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   var recognition = null;
 
-  // --- МИКРОФОН ---
   if (SR) {
     try {
       recognition = new SR();
@@ -250,43 +630,46 @@ document.addEventListener('DOMContentLoaded', function() {
 
       recognition.onstart = function() {
         isListening = true;
-        micBtn.classList.add('active');
-        robot.classList.add('listening');
-        statusEl.textContent = '🎤 Слушаю…';
-        statusEl.classList.remove('error', 'thinking');
+        voiceMicBtn.classList.add('active');
+        robotLarge.classList.add('listening');
+        voiceStatus.textContent = 'Слушаю вас...';
+        voiceStatus.classList.add('listening');
+        voiceStatus.classList.remove('error');
       };
 
       recognition.onresult = function(event) {
         var text = event.results[0][0].transcript;
-        if (Date.now() < cooldownEndTime) return showCooldownError();
-        handleUserText(text);
-      };
-
-      recognition.onerror = function(event) {
-        if (event.error !== 'no-speech' && event.error !== 'aborted') {
-          statusEl.textContent = event.error === 'not-allowed' ? '❌ Нет доступа к микрофону.' : '⚠️ Ошибка: ' + event.error;
-          statusEl.classList.add('error');
+        if (Date.now() < cooldownEndTime) {
+          showCooldownError();
+          return;
         }
+        handleUserText(text, true); 
       };
 
       recognition.onend = function() {
         isListening = false;
-        micBtn.classList.remove('active');
-        robot.classList.remove('listening');
-        if (!isRateLimited && statusEl.className.indexOf('thinking') === -1) {
-          statusEl.textContent = 'Нажмите на микрофон';
+        voiceMicBtn.classList.remove('active');
+        robotLarge.classList.remove('listening');
+        
+        if (!isProcessingVoice && !isRateLimited) {
+          voiceStatus.textContent = 'Нажмите на микрофон';
+          voiceStatus.classList.remove('listening', 'error');
         }
+      };
+      
+      recognition.onerror = function(event) {
+         if (event.error !== 'no-speech' && event.error !== 'aborted') {
+             voiceStatus.textContent = 'Ошибка микрофона';
+         }
+         isListening = false;
+         voiceMicBtn.classList.remove('active');
+         robotLarge.classList.remove('listening');
       };
     } catch(e) {}
   }
 
-  micBtn.addEventListener('click', function(e) {
-    e.preventDefault();
-    if (!recognition) {
-      statusEl.textContent = '⚠️ Микрофон не поддерживается.';
-      statusEl.classList.add('error');
-      return;
-    }
+  voiceMicBtn.onclick = function() {
+    if (!recognition) return alert('Микрофон не поддерживается');
     if (Date.now() < cooldownEndTime) return showCooldownError();
     if (window.speechSynthesis) speechSynthesis.cancel();
     
@@ -295,9 +678,8 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     try { recognition.start(); } catch (err) {}
-  });
+  };
 
-  // --- ОЗВУЧКА ---
   var bestRuVoice = null;
   function loadVoices() {
     try {
@@ -322,33 +704,67 @@ document.addEventListener('DOMContentLoaded', function() {
     speechSynthesis.cancel();
     var cleanText = text.replace(/\*\*/g, '').replace(/\*/g, '').replace(/#/g, '');
     var utter = new SpeechSynthesisUtterance(cleanText);
-    utter.lang = 'ru-RU'; 
-    utter.rate = 1.0; 
+    utter.lang = 'ru-RU'; utter.rate = 1.0; 
     if (bestRuVoice) utter.voice = bestRuVoice;
-    utter.onstart = function() { robot.classList.add('talking'); };
-    utter.onend = function() { robot.classList.remove('talking'); };
+    
+    utter.onstart = function() { 
+      robotLarge.classList.add('talking'); 
+      if (voiceInterface.classList.contains('open')) {
+        voiceStatus.textContent = 'Говорю...';
+        voiceStatus.classList.remove('listening');
+      }
+    };
+    utter.onend = function() { 
+      robotLarge.classList.remove('talking'); 
+      if (voiceInterface.classList.contains('open')) {
+        voiceStatus.textContent = 'Нажмите на микрофон';
+      }
+    };
     speechSynthesis.speak(utter);
   }
 
-  // --- ТАЙМЕРЫ ---
   function showCooldownError() {
     isRateLimited = true;
+    
+    if (voiceInterface.classList.contains('open')) {
+      voiceStatus.textContent = 'Подождите ' + Math.ceil((cooldownEndTime - Date.now()) / 1000) + ' сек.';
+      voiceStatus.className = 'voice-status error';
+    } else if (!cooldownAlertEl) {
+      cooldownAlertEl = document.createElement('div');
+      cooldownAlertEl.className = 'cooldown-alert';
+      chatContainer.appendChild(cooldownAlertEl);
+      scrollToBottom();
+    }
+    
     if (cooldownTimer) clearInterval(cooldownTimer);
+    
     var update = function() {
       var left = Math.ceil((cooldownEndTime - Date.now()) / 1000);
       if (left > 0) {
-        statusEl.classList.add('error');
-        statusEl.classList.remove('thinking');
-        statusEl.textContent = 'Слишком быстро! Ждем: ' + left + 'с';
+        if (voiceInterface.classList.contains('open')) {
+          voiceStatus.textContent = 'Подождите ' + left + ' сек.';
+        } else if (cooldownAlertEl) {
+          cooldownAlertEl.textContent = 'Слишком быстро! Подождите ' + left + ' сек.';
+          scrollToBottom();
+        }
       } else {
         clearInterval(cooldownTimer);
         cooldownTimer = null;
-        statusEl.classList.remove('error');
         isRateLimited = false;
-        statusEl.textContent = 'Готов помочь';
+        
+        if (voiceInterface.classList.contains('open')) {
+          voiceStatus.textContent = 'Нажмите на микрофон';
+          voiceStatus.className = 'voice-status';
+        }
+        if (cooldownAlertEl) {
+          cooldownAlertEl.remove();
+          cooldownAlertEl = null;
+        }
       }
     };
-    update(); cooldownTimer = setInterval(update, 1000);
+    
+    update();
+    cooldownTimer = setInterval(update, 1000);
   }
 
   function startCooldown() {
@@ -356,25 +772,31 @@ document.addEventListener('DOMContentLoaded', function() {
     if (cooldownTimer) clearInterval(cooldownTimer);
   }
 
-  // --- ЗАПРОС К НЕЙРОСЕТИ ---
   function fetchText(input, isForImagePrompt) {
-    var systemPrompt = "Ты — ChugurAI, дружелюбный ассистент. Отвечай кратко. В начале ответа используй: «Да, сэр», «Конечно, сэр» или «Разумеется, сэр».";
+    var systemPrompt = "Ты — ChugurAI, дружелюбный ассистент. Отвечай кратко. В начале ответа используй: «Да, сэр», «Конечно, сэр» или «Разумеется, сэр». ВАЖНО: Помни контекст предыдущих сообщений пользователя.";
     
     if (isForImagePrompt) {
-       systemPrompt = "You are an AI image prompt engineer. Translate the user's image request into a highly detailed, accurate English prompt for an image generator (like Midjourney). Reply ONLY with the English prompt, no conversational text, no quotes. Description: " + input;
+       systemPrompt = "You are an AI image prompt engineer. Translate the user's image request into a highly detailed, accurate English prompt for an image generator. Reply ONLY with the English prompt. Description: " + input;
     }
     
+    var chat = chats.find(function(c) { return c.id === currentChatId; });
+    var apiMessages = [{ role: 'system', content: systemPrompt }];
+    
+    if (chat && !isForImagePrompt) {
+      var history = chat.messages.slice(-14);
+      history.forEach(function(msg) {
+        apiMessages.push({ role: msg.role, content: msg.content || "" });
+      });
+    } else {
+      apiMessages.push({ role: 'user', content: input });
+    }
+
     return fetch('https://keylessai.thryx.workers.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: input }]
-      })
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'gpt-4o', messages: apiMessages })
     })
     .then(function(res) {
       if (res.status === 429) throw new Error('RATE_LIMIT');
-      if (!res.ok) throw new Error('API_ERROR');
       return res.json();
     })
     .then(function(data) {
@@ -382,92 +804,165 @@ document.addEventListener('DOMContentLoaded', function() {
     })
     .catch(function(err) {
       var fallbackUrl = 'https://text.pollinations.ai/' + encodeURIComponent(input) + '?model=openai&system=' + encodeURIComponent(systemPrompt);
-      return fetch(fallbackUrl)
-        .then(function(res) { return res.text(); })
+      return fetch(fallbackUrl).then(function(res) { return res.text(); })
         .then(function(text) {
-          if (text.toLowerCase().indexOf('limit') !== -1 && text.toLowerCase().indexOf('seconds') !== -1) {
-            throw new Error('RATE_LIMIT');
-          }
+          if (text.toLowerCase().indexOf('limit') !== -1) throw new Error('RATE_LIMIT');
           return text.replace(/\*\*/g, '').replace(/\*/g, '');
         });
     });
   }
 
-  // --- ОБРАБОТКА ТЕКСТА И ГЕНЕРАЦИЯ ---
-  function handleUserText(rawText) {
+  function handleUserText(rawText, shouldSpeak) {
     var text = rawText.trim();
     if (!text) return;
     
-    heardText.textContent = text;
-    replyText.textContent = '…';
-    imgContainer.style.display = 'none'; 
-    generatedImg.src = ''; 
+    var chat = chats.find(function(c) { return c.id === currentChatId; });
+    if (!chat) return;
+
+    textInput.value = ''; 
+    textInput.style.height = '44px';
+
+    chat.messages.push({ role: 'user', content: text });
+    renderMessage('user', text);
     
     startCooldown();
+    isProcessingVoice = true; 
 
-    // Умное распознавание картинок
     var strictImageVerbs = /(нарисуй|сгенерируй|изобрази|отрисуй|визуализируй|начерти|draw|generate|paint)/i;
     var softImageVerbs = /(создай|сделай|покажи|хочу|дай|можешь)/i;
     var imageNouns = /(картинк|картин|изображени|фот|фотографи|рисун|арт|иллюстраци|пейзаж|портрет|график|image|picture|photo|art)/i;
-
     var isImageRequest = strictImageVerbs.test(text) || (softImageVerbs.test(text) && imageNouns.test(text));
 
     var prompt = text;
     if (isImageRequest) {
       prompt = prompt.replace(/нарисуй|сгенерируй|создай|сделай|покажи|изобрази|отрисуй|визуализируй|начерти|мне|пожалуйста|картинку|картину|изображение|фото|фотографию|рисунок|арт|иллюстрацию|графику|пейзаж|портрет/gi, '').trim();
-      if (!prompt) prompt = "красивый футуристичный пейзаж";
+      if (!prompt) prompt = "красивый фейерверк";
     }
 
-    var visualTime = THINKING_DELAY_SEC;
-    statusEl.classList.remove('error');
-    statusEl.classList.add('thinking');
-    statusEl.textContent = isImageRequest ? 'Анализирую запрос... (' + visualTime + 'с)' : 'Анализирую... (' + visualTime + 'с)';
+    var voiceCountdownTimer = null;
+    if (voiceInterface.classList.contains('open')) {
+        var countdown = THINKING_DELAY_SEC;
+        voiceStatus.textContent = 'Думаю...';
+        voiceStatus.className = 'voice-status';
+        
+        voiceCountdownTimer = setInterval(function() {
+            countdown--;
+            if (countdown > 0) {
+                var phase = "Думаю...";
+                if (countdown <= 15 && countdown > 10) phase = "Анализирую запрос...";
+                if (countdown <= 10 && countdown > 5) phase = "Обдумываю...";
+                if (countdown <= 5) phase = "Готовлю ответ...";
+                voiceStatus.textContent = phase;
+            } else {
+                voiceStatus.textContent = 'Отвечаю...';
+                clearInterval(voiceCountdownTimer);
+            }
+        }, 1000);
+    }
 
-    var visualTimer = setInterval(function() {
-      visualTime--;
-      if (visualTime > 0) {
-        statusEl.textContent = (isImageRequest ? 'Анализирую запрос... (' : 'Анализирую... (') + visualTime + 'с)';
-      } else {
-        statusEl.textContent = isImageRequest ? 'Рисую...' : 'Получаю ответ...';
-        clearInterval(visualTimer);
-      }
-    }, 1000);
+    var typingId = 'typing_' + Date.now();
+    var typingDiv = document.createElement('div');
+    typingDiv.className = 'message ai';
+    typingDiv.id = typingId;
+    typingDiv.innerHTML = '<div class="thinking-bubble"><div class="typing-indicator"><span></span><span></span><span></span></div><span class="thinking-text">Думаю...</span></div>';
+    chatContainer.appendChild(typingDiv);
+    scrollToBottom();
+
+    var thinkingPhrases = ["Думаю...", "Анализирую запрос...", "Подбираю слова...", "Готовлю ответ..."];
+    var phraseIdx = 0;
+    var phraseTimer = setInterval(function() {
+      phraseIdx++;
+      if (phraseIdx >= thinkingPhrases.length) phraseIdx = thinkingPhrases.length - 1;
+      var textEl = typingDiv.querySelector('.thinking-text');
+      if (textEl) textEl.textContent = thinkingPhrases[phraseIdx];
+    }, 5000);
 
     var apiRequest = null;
-
     if (isImageRequest) {
       apiRequest = new Promise(function(resolve, reject) {
         fetchText(prompt, true).then(function(englishPrompt) {
-          var cleanEnglishPrompt = englishPrompt.replace(/["']/g, '').trim();
-          var imgUrl = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(cleanEnglishPrompt) + '?width=512&height=512&nologo=true&model=flux';
-          
-          generatedImg.onload = function() { resolve({ success: true, url: imgUrl, prompt: prompt }); };
-          generatedImg.onerror = function() { reject(new Error('IMAGE_ERROR')); };
-          generatedImg.src = imgUrl;
+          var cleanPrompt = englishPrompt.replace(/["']/g, '').trim();
+          var imgUrl = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(cleanPrompt) + '?width=512&height=512&nologo=true&model=flux';
+          var img = new Image();
+          img.onload = function() { resolve({ success: true, url: imgUrl, prompt: prompt }); };
+          img.onerror = function() { reject(new Error('IMAGE_ERROR')); };
+          img.src = imgUrl;
         }).catch(reject);
       });
     } else {
       apiRequest = fetchText(text, false);
     }
 
-    // Ждем и ответ от сервера, и окончание 20 секунд
     var minWait = new Promise(function(resolve) { setTimeout(resolve, THINKING_DELAY_SEC * 1000); });
 
     Promise.all([apiRequest, minWait]).then(function(results) {
       var result = results[0];
-      clearInterval(visualTimer);
+      
+      clearInterval(phraseTimer);
+      if (voiceCountdownTimer) clearInterval(voiceCountdownTimer);
+      isProcessingVoice = false; 
+
+      var tEl = document.getElementById(typingId);
+      if (tEl) tEl.remove();
 
       if (isImageRequest) {
         if (result.success) {
-          statusEl.classList.remove('thinking');
-          statusEl.textContent = 'Готово!';
-          replyText.textContent = 'Да, сэр. Вот ваша картинка по запросу: "' + result.prompt + '"';
-          imgContainer.style.display = 'block'; 
-          speak('Да, сэр. Вот ваша картинка.');
+          var replyMsg = 'Да, сэр. Вот ваша картинка:';
+          chat.messages.push({ role: 'assistant', content: replyMsg, imageUrl: result.url });
+          renderMessage('ai', replyMsg, result.url);
+          
+          if (shouldSpeak) speak('Да, сэр. Вот ваша картинка.');
         } else {
-          statusEl.textContent = 'Ошибка';
-          replyText.textContent = 'Извините, сэр, не удалось нарисовать.';
+          renderMessage('ai', 'Извините, не удалось нарисовать.');
+          if (shouldSpeak) speak('Извините, не удалось нарисовать.');
         }
       } else {
-        replyText.textContent = result;
-        statusEl.cl
+        chat.messages.push({ role: 'assistant', content: result });
+        renderMessage('ai', result);
+        
+        if (shouldSpeak) speak(result);
+      }
+      saveChats();
+    }).catch(function(err) {
+      clearInterval(phraseTimer);
+      if (voiceCountdownTimer) clearInterval(voiceCountdownTimer);
+      isProcessingVoice = false; 
+
+      var tEl = document.getElementById(typingId);
+      if (tEl) tEl.remove();
+      
+      if (err.message === 'RATE_LIMIT') {
+        renderMessage('ai', 'Слишком много запросов к серверу.');
+        if (Date.now() >= cooldownEndTime) cooldownEndTime = Date.now() + 45000;
+        showCooldownError();
+      } else {
+        renderMessage('ai', 'Ошибка соединения с сервером.');
+      }
+    });
+  }
+
+  function sendMessage() {
+    var val = textInput.value.trim();
+    if (!val) return;
+    if (Date.now() < cooldownEndTime) return showCooldownError();
+    if (window.speechSynthesis) speechSynthesis.cancel();
+    handleUserText(val, false);
+  }
+
+  sendBtn.addEventListener('click', sendMessage);
+  
+  textInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  textInput.addEventListener('input', function() {
+    this.style.height = '44px';
+    this.style.height = (this.scrollHeight) + 'px';
+  });
+});
+</script>
+</body>
+</html>
