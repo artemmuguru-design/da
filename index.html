@@ -3,9 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>ChugurAI — Auth</title>
-<!-- 1. Подключаем библиотеку Google Identity Services -->
+<title>ChugurAI — Neural Assistant</title>
+
+<!-- Подключение Google Identity Services -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -19,14 +21,12 @@
     text-align: center; box-shadow: 0 20px 60px rgba(255, 255, 255, 0.03);
   }
   
-  /* Шапка с профилем */
+  /* Шапка профиля */
   .auth-header {
     position: absolute; top: 15px; right: 15px; display: flex; align-items: center; gap: 10px;
   }
-  .user-avatar {
-    width: 32px; height: 32px; border-radius: 50%; border: 1px solid #444;
-  }
-  .user-name { font-size: 13px; color: #aaa; }
+  .user-avatar { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #444; }
+  .user-name { font-size: 13px; color: #aaa; max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .logout-btn {
     background: transparent; border: 1px solid #444; color: #888; font-size: 11px;
     padding: 4px 8px; border-radius: 8px; cursor: pointer; transition: 0.2s;
@@ -51,7 +51,7 @@
   .robot.listening .head { border-color: #ffffff; box-shadow: 0 0 20px rgba(255, 255, 255, 0.1); }
   .robot.listening .eye { background: #888888; transform: scale(1.2); }
 
-  /* Кнопка */
+  /* Кнопка микрофона */
   .mic-btn { width: 80px; height: 80px; border-radius: 50%; border: 1.5px solid #444; cursor: pointer; background: transparent; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; transition: all 0.3s ease; position: relative; z-index: 10; -webkit-tap-highlight-color: transparent; }
   .mic-btn:hover { border-color: #ffffff; background: rgba(255, 255, 255, 0.03); }
   .mic-btn:active { transform: scale(0.95); }
@@ -72,6 +72,7 @@
   .bubble.reply { border-color: #444444; background: #000000; color: #ffffff; }
   .bubble.reply .label { color: #ffffff; }
 
+  /* Картинка */
   #imgContainer { display: none; margin-top: 12px; border-radius: 12px; overflow: hidden; border: 1px solid #333; }
   #imgContainer img { width: 100%; height: auto; display: block; }
 
@@ -86,7 +87,7 @@
 <body>
 
 <div class="card">
-  <!-- Шапка профиля (появляется после входа) -->
+  <!-- Шапка профиля -->
   <div class="auth-header hidden" id="userProfile">
     <img id="userAvatar" class="user-avatar" src="" alt="Avatar">
     <span id="userName" class="user-name"></span>
@@ -96,7 +97,7 @@
   <h1>ChugurAI</h1>
   <p class="subtitle">Neural Assistant</p>
 
-  <!-- Контейнер для кнопки Google -->
+  <!-- Контейнер для кнопки Google (Экран входа) -->
   <div id="googleBtnContainer"></div>
 
   <!-- Основной интерфейс (скрыт до входа) -->
@@ -133,7 +134,10 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // --- ЭЛЕМЕНТЫ АВТОРИЗАЦИИ ---
+  
+  // ============================================================
+  // 1. АВТОРИЗАЦИЯ GOOGLE
+  // ============================================================
   var googleBtnContainer = document.getElementById('googleBtnContainer');
   var userProfile = document.getElementById('userProfile');
   var userAvatar = document.getElementById('userAvatar');
@@ -141,7 +145,9 @@ document.addEventListener('DOMContentLoaded', function() {
   var logoutBtn = document.getElementById('logoutBtn');
   var mainApp = document.getElementById('mainApp');
 
-  // --- ФУНКЦИЯ ВЫХОДА ---
+  // Твой Client ID
+  var GOOGLE_CLIENT_ID = "863049198588-ih96igl85cfvn8jtbg7rntispkn1m0m2.apps.googleusercontent.com";
+
   function signOut() {
     localStorage.removeItem('chugur_user');
     userProfile.classList.add('hidden');
@@ -154,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   logoutBtn.addEventListener('click', signOut);
 
-  // --- ПРОВЕРКА СОХРАНЕННОГО ПОЛЬЗОВАТЕЛЯ ---
+  // Проверка сохраненного пользователя
   var savedUser = localStorage.getItem('chugur_user');
   if (savedUser) {
     try {
@@ -169,9 +175,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // --- ИНИЦИАЛИЗАЦИЯ GOOGLE SIGN-IN ---
+  // Обработка ответа от Google
   window.handleCredentialResponse = function(response) {
-    // Декодируем JWT токен, чтобы получить данные пользователя
     var base64Url = response.credential.split('.')[1];
     var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
     var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
@@ -180,14 +185,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     var user = JSON.parse(jsonPayload);
     
-    // Сохраняем данные
     localStorage.setItem('chugur_user', JSON.stringify({
       name: user.name,
       email: user.email,
       picture: user.picture
     }));
 
-    // Обновляем интерфейс
     userAvatar.src = user.picture;
     userName.textContent = user.name;
     userProfile.classList.remove('hidden');
@@ -195,11 +198,11 @@ document.addEventListener('DOMContentLoaded', function() {
     googleBtnContainer.classList.add('hidden');
   };
 
-  // Инициализация кнопки Google (вызывается после загрузки скрипта)
+  // Инициализация кнопки Google
   function initGoogleSignIn() {
     if (typeof google !== 'undefined' && google.accounts) {
       google.accounts.id.initialize({
-        client_id: "YOUR_GOOGLE_CLIENT_ID", // <-- ЗАМЕНИ НА СВОЙ ID
+        client_id: GOOGLE_CLIENT_ID,
         callback: window.handleCredentialResponse
       });
       google.accounts.id.renderButton(
@@ -211,16 +214,260 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // Запускаем инициализацию только если пользователь не авторизован
   if (!savedUser) {
     initGoogleSignIn();
   }
 
   // ============================================================
-  // ДАЛЬШЕ ИДЕТ ВЕСЬ ТВОЙ СТАРЫЙ КОД (ЛОГИКА ИИ, МИКРОФОН, Т.Д.)
+  // 2. ЛОГИКА ИИ (ЧАТ И КАРТИНКИ)
   // ============================================================
-  // ... (вставь сюда все переменные и функции для работы с ИИ)
-});
-</script>
-</body>
-</html>
+  var micBtn = document.getElementById('micBtn');
+  var robot = document.getElementById('robot');
+  var statusEl = document.getElementById('status');
+  var heardText = document.getElementById('heardText');
+  var replyText = document.getElementById('replyText');
+  var textInput = document.getElementById('textInput');
+  var imgContainer = document.getElementById('imgContainer');
+  var generatedImg = document.getElementById('generatedImg');
+
+  var THINKING_DELAY_SEC = 20; 
+  var COOLDOWN_SEC = 46;       
+  var cooldownEndTime = 0;
+  var cooldownTimer = null;
+  var isRateLimited = false;
+  var isListening = false;
+
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var recognition = null;
+
+  // --- МИКРОФОН ---
+  if (SR) {
+    try {
+      recognition = new SR();
+      recognition.lang = 'ru-RU';
+      recognition.interimResults = false;
+      recognition.continuous = false;
+
+      recognition.onstart = function() {
+        isListening = true;
+        micBtn.classList.add('active');
+        robot.classList.add('listening');
+        statusEl.textContent = '🎤 Слушаю…';
+        statusEl.classList.remove('error', 'thinking');
+      };
+
+      recognition.onresult = function(event) {
+        var text = event.results[0][0].transcript;
+        if (Date.now() < cooldownEndTime) return showCooldownError();
+        handleUserText(text);
+      };
+
+      recognition.onerror = function(event) {
+        if (event.error !== 'no-speech' && event.error !== 'aborted') {
+          statusEl.textContent = event.error === 'not-allowed' ? '❌ Нет доступа к микрофону.' : '⚠️ Ошибка: ' + event.error;
+          statusEl.classList.add('error');
+        }
+      };
+
+      recognition.onend = function() {
+        isListening = false;
+        micBtn.classList.remove('active');
+        robot.classList.remove('listening');
+        if (!isRateLimited && statusEl.className.indexOf('thinking') === -1) {
+          statusEl.textContent = 'Нажмите на микрофон';
+        }
+      };
+    } catch(e) {}
+  }
+
+  micBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    if (!recognition) {
+      statusEl.textContent = '⚠️ Микрофон не поддерживается.';
+      statusEl.classList.add('error');
+      return;
+    }
+    if (Date.now() < cooldownEndTime) return showCooldownError();
+    if (window.speechSynthesis) speechSynthesis.cancel();
+    
+    if (isListening) {
+      try { recognition.stop(); } catch(e) {}
+      return;
+    }
+    try { recognition.start(); } catch (err) {}
+  });
+
+  // --- ОЗВУЧКА ---
+  var bestRuVoice = null;
+  function loadVoices() {
+    try {
+      if (!('speechSynthesis' in window)) return;
+      var availableVoices = speechSynthesis.getVoices();
+      var ruVoices = availableVoices.filter(function(v) { return v.lang && v.lang.indexOf('ru') !== -1; });
+      if (ruVoices.length > 0) {
+        bestRuVoice = ruVoices[0];
+        for (var i = 0; i < ruVoices.length; i++) {
+          if (/(google|premium|natural|online|dmitry|yuri)/i.test(ruVoices[i].name)) {
+            bestRuVoice = ruVoices[i]; break;
+          }
+        }
+      } else { bestRuVoice = availableVoices[0]; }
+    } catch(e) {}
+  }
+  loadVoices();
+  if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = loadVoices;
+
+  function speak(text) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    var cleanText = text.replace(/\*\*/g, '').replace(/\*/g, '').replace(/#/g, '');
+    var utter = new SpeechSynthesisUtterance(cleanText);
+    utter.lang = 'ru-RU'; 
+    utter.rate = 1.0; 
+    if (bestRuVoice) utter.voice = bestRuVoice;
+    utter.onstart = function() { robot.classList.add('talking'); };
+    utter.onend = function() { robot.classList.remove('talking'); };
+    speechSynthesis.speak(utter);
+  }
+
+  // --- ТАЙМЕРЫ ---
+  function showCooldownError() {
+    isRateLimited = true;
+    if (cooldownTimer) clearInterval(cooldownTimer);
+    var update = function() {
+      var left = Math.ceil((cooldownEndTime - Date.now()) / 1000);
+      if (left > 0) {
+        statusEl.classList.add('error');
+        statusEl.classList.remove('thinking');
+        statusEl.textContent = 'Слишком быстро! Ждем: ' + left + 'с';
+      } else {
+        clearInterval(cooldownTimer);
+        cooldownTimer = null;
+        statusEl.classList.remove('error');
+        isRateLimited = false;
+        statusEl.textContent = 'Готов помочь';
+      }
+    };
+    update(); cooldownTimer = setInterval(update, 1000);
+  }
+
+  function startCooldown() {
+    cooldownEndTime = Date.now() + (COOLDOWN_SEC * 1000);
+    if (cooldownTimer) clearInterval(cooldownTimer);
+  }
+
+  // --- ЗАПРОС К НЕЙРОСЕТИ ---
+  function fetchText(input, isForImagePrompt) {
+    var systemPrompt = "Ты — ChugurAI, дружелюбный ассистент. Отвечай кратко. В начале ответа используй: «Да, сэр», «Конечно, сэр» или «Разумеется, сэр».";
+    
+    if (isForImagePrompt) {
+       systemPrompt = "You are an AI image prompt engineer. Translate the user's image request into a highly detailed, accurate English prompt for an image generator (like Midjourney). Reply ONLY with the English prompt, no conversational text, no quotes. Description: " + input;
+    }
+    
+    return fetch('https://keylessai.thryx.workers.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: input }]
+      })
+    })
+    .then(function(res) {
+      if (res.status === 429) throw new Error('RATE_LIMIT');
+      if (!res.ok) throw new Error('API_ERROR');
+      return res.json();
+    })
+    .then(function(data) {
+      return data.choices[0].message.content.trim().replace(/\*\*/g, '');
+    })
+    .catch(function(err) {
+      var fallbackUrl = 'https://text.pollinations.ai/' + encodeURIComponent(input) + '?model=openai&system=' + encodeURIComponent(systemPrompt);
+      return fetch(fallbackUrl)
+        .then(function(res) { return res.text(); })
+        .then(function(text) {
+          if (text.toLowerCase().indexOf('limit') !== -1 && text.toLowerCase().indexOf('seconds') !== -1) {
+            throw new Error('RATE_LIMIT');
+          }
+          return text.replace(/\*\*/g, '').replace(/\*/g, '');
+        });
+    });
+  }
+
+  // --- ОБРАБОТКА ТЕКСТА И ГЕНЕРАЦИЯ ---
+  function handleUserText(rawText) {
+    var text = rawText.trim();
+    if (!text) return;
+    
+    heardText.textContent = text;
+    replyText.textContent = '…';
+    imgContainer.style.display = 'none'; 
+    generatedImg.src = ''; 
+    
+    startCooldown();
+
+    // Умное распознавание картинок
+    var strictImageVerbs = /(нарисуй|сгенерируй|изобрази|отрисуй|визуализируй|начерти|draw|generate|paint)/i;
+    var softImageVerbs = /(создай|сделай|покажи|хочу|дай|можешь)/i;
+    var imageNouns = /(картинк|картин|изображени|фот|фотографи|рисун|арт|иллюстраци|пейзаж|портрет|график|image|picture|photo|art)/i;
+
+    var isImageRequest = strictImageVerbs.test(text) || (softImageVerbs.test(text) && imageNouns.test(text));
+
+    var prompt = text;
+    if (isImageRequest) {
+      prompt = prompt.replace(/нарисуй|сгенерируй|создай|сделай|покажи|изобрази|отрисуй|визуализируй|начерти|мне|пожалуйста|картинку|картину|изображение|фото|фотографию|рисунок|арт|иллюстрацию|графику|пейзаж|портрет/gi, '').trim();
+      if (!prompt) prompt = "красивый футуристичный пейзаж";
+    }
+
+    var visualTime = THINKING_DELAY_SEC;
+    statusEl.classList.remove('error');
+    statusEl.classList.add('thinking');
+    statusEl.textContent = isImageRequest ? 'Анализирую запрос... (' + visualTime + 'с)' : 'Анализирую... (' + visualTime + 'с)';
+
+    var visualTimer = setInterval(function() {
+      visualTime--;
+      if (visualTime > 0) {
+        statusEl.textContent = (isImageRequest ? 'Анализирую запрос... (' : 'Анализирую... (') + visualTime + 'с)';
+      } else {
+        statusEl.textContent = isImageRequest ? 'Рисую...' : 'Получаю ответ...';
+        clearInterval(visualTimer);
+      }
+    }, 1000);
+
+    var apiRequest = null;
+
+    if (isImageRequest) {
+      apiRequest = new Promise(function(resolve, reject) {
+        fetchText(prompt, true).then(function(englishPrompt) {
+          var cleanEnglishPrompt = englishPrompt.replace(/["']/g, '').trim();
+          var imgUrl = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(cleanEnglishPrompt) + '?width=512&height=512&nologo=true&model=flux';
+          
+          generatedImg.onload = function() { resolve({ success: true, url: imgUrl, prompt: prompt }); };
+          generatedImg.onerror = function() { reject(new Error('IMAGE_ERROR')); };
+          generatedImg.src = imgUrl;
+        }).catch(reject);
+      });
+    } else {
+      apiRequest = fetchText(text, false);
+    }
+
+    // Ждем и ответ от сервера, и окончание 20 секунд
+    var minWait = new Promise(function(resolve) { setTimeout(resolve, THINKING_DELAY_SEC * 1000); });
+
+    Promise.all([apiRequest, minWait]).then(function(results) {
+      var result = results[0];
+      clearInterval(visualTimer);
+
+      if (isImageRequest) {
+        if (result.success) {
+          statusEl.classList.remove('thinking');
+          statusEl.textContent = 'Готово!';
+          replyText.textContent = 'Да, сэр. Вот ваша картинка по запросу: "' + result.prompt + '"';
+          imgContainer.style.display = 'block'; 
+          speak('Да, сэр. Вот ваша картинка.');
+        } else {
+          statusEl.textContent = 'Ошибка';
+          replyText.textContent = 'Извините, сэр, не удалось нарисовать.';
+        }
+      } else {
+        replyText.textContent = result;
+        statusEl.cl
